@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/template_spawn_egg",
+  "textures": {
+    "pattern": "fair_difficulty_overhaul:items/raised_zombie_spawn_egg"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "itemGroup.fair_difficulty_overhaul": "Fair Difficulty Overhaul",
+
+  "difficulty.peaceful": "Pacífico",
+  "difficulty.easy": "Fácil",
+  "difficulty.normal": "Normal",
+  "difficulty.hard": "Difícil",
+  "difficulty.expert": "Experto",
+  "difficulty.nightmare": "Pesadilla",
+  "difficulty.apocalyptic": "Apocalíptico",
+
+  "entity.fair_difficulty_overhaul.raised_zombie": "Zombi Resucitado",
+  "item.fair_difficulty_overhaul.raised_zombie_spawn_egg": "Huevo de Generación de Zombi Resucitado",
+  "entity.fair_difficulty_overhaul.ancient_creeper": "Creeper Antiguo",
+  "item.fair_difficulty_overhaul.ancient_creeper_spawn_egg": "Huevo de Generación de Creeper Antiguo",
+  
+  "advancements.fair_difficulty_overhaul.root.title": "bestiario de AFDO",
+  "advancements.fair_difficulty_overhaul.root.description": "Un bestiario del mod, con algo de historia.",
+  "advancements.fair_difficulty_overhaul.raised_zombies.title": "Zombis Resucitados",
+  "advancements.fair_difficulty_overhaul.raised_zombies.description": "A diferencia de sus contrapartes que se propagan naturalmente, estos son resucitados artificialmente con malas intenciones, lo que explica su comportamiento. Alguien dijo una vez que escuchó a uno de ellos susurrar 'ayúdame'.",
+  "advancements.fair_difficulty_overhaul.ancient_creepers.title": "Creepers Antiguos",
+  "advancements.fair_difficulty_overhaul.ancient_creepers.description": "Estos creepers han vivido una larga vida. Contener su explosión durante tanto tiempo ha desfigurado sus rostros y agrietado sus pieles.",
+ 
+  "difficulty.setup": "Configuración de dificultad: \n - Dificultad del servidor: %s\n - Dificultad por jugador: %s\n - Dificultad mínima del jugador: %s\n - Dificultad máxima del jugador: %s",
+  "difficulty.invalid.option": "Opción de dificultad inválida. Usa /difficulty help para ver una lista de opciones.",
+  "difficulty.server.set": "La dificultad del servidor se ha establecido en %s",
+  "difficulty.min.player.set": "La dificultad mínima del jugador se ha establecido en %s",
+  "difficulty.max.player.set": "La dificultad máxima del jugador se ha establecido en %s",
+  "difficulty.per.player.set": "La dificultad por jugador se ha establecido en %s",
+  "difficulty.invalid.setting": "Configuración inválida. Usa /difficulty-setup para ver la lista de claves.",
+  "difficulty.per.player.disabled": "La dificultad por jugador está desactivada.",
+  "difficulty.player.only": "Debes ser un jugador para usar este comando.",
+  "difficulty.personal": "Tu dificultad personal es: %s",
+  "difficulty.options": "Opciones de dificultad en orden: %s",
+  "difficulty.too.high": "La dificultad que has establecido es mayor que la dificultad máxima permitida: %s",
+  "difficulty.too.low": "La dificultad que has establecido es menor que la dificultad mínima permitida: %s",
+  "difficulty.personal.set": "Tu dificultad personal se ha establecido en %s",
+  "difficulty.current": "La dificultad actual es: %s",
+  "difficulty.set": "La dificultad se ha establecido en %s"
+}

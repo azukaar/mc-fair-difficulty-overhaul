@@ -1,0 +1,40 @@
+{
+  "itemGroup.fair_difficulty_overhaul": "Fair Difficulty Overhaul",
+
+  "difficulty.peaceful": "Peaceful",
+  "difficulty.easy": "Easy",
+  "difficulty.normal": "Normal",
+  "difficulty.hard": "Hard",
+  "difficulty.expert": "Expert",
+  "difficulty.nightmare": "Nightmare",
+  "difficulty.apocalyptic": "Apocalyptic",
+
+  "entity.fair_difficulty_overhaul.raised_zombie": "Raised Zombie",
+  "item.fair_difficulty_overhaul.raised_zombie_spawn_egg": "Raised Zombie Spawn Egg",
+  "entity.fair_difficulty_overhaul.ancient_creeper": "Ancient Creeper",
+  "item.fair_difficulty_overhaul.ancient_creeper_spawn_egg": "Ancient Creeper Spawn Egg",
+
+  "advancements.fair_difficulty_overhaul.root.title": "AFDO bestiary",
+  "advancements.fair_difficulty_overhaul.root.description": "A bestiary of the mod, with some lore.",
+  "advancements.fair_difficulty_overhaul.raised_zombies.title": "Raised Zombies",
+  "advancements.fair_difficulty_overhaul.raised_zombies.description": "Unlike their naturally spreading counterparts, these are raised artificially with ill intent, explaining their behavior. Someone once said they heard one of them whisper 'help me'.",
+  "advancements.fair_difficulty_overhaul.ancient_creepers.title": "Ancient Creepers",
+  "advancements.fair_difficulty_overhaul.ancient_creepers.description": "Those creeper have lived a long life. Holding in their explosion for so long had the pain disfigure their face and crack their skins.",
+  
+  "difficulty.setup": "Difficulty setup: \n - serverDifficulty: %s\n - perPlayerDifficulty: %s\n - minPlayerDifficulty: %s\n - maxPlayerDifficulty: %s",
+  "difficulty.invalid.option": "Invalid difficulty option. Use /difficulty help for a list of options.",
+  "difficulty.server.set": "The server difficulty has been set to %s",
+  "difficulty.min.player.set": "The minimum player difficulty has been set to %s",
+  "difficulty.max.player.set": "The maximum player difficulty has been set to %s",
+  "difficulty.per.player.set": "Per player difficulty has been set to %s",
+  "difficulty.invalid.setting": "Invalid setting. Use /difficulty-setup to see the list of keys.",
+  "difficulty.per.player.disabled": "Per player difficulty is disabled.",
+  "difficulty.player.only": "You must be a player to use this command.",
+  "difficulty.personal": "Your personal difficulty is: %s",
+  "difficulty.options": "Difficulty options by order: %s",
+  "difficulty.too.high": "The difficulty you set is higher than the maximum difficulty allowed: %s",
+  "difficulty.too.low": "The difficulty you set is lower than the minimum difficulty allowed: %s",
+  "difficulty.personal.set": "Your personal difficulty has been set to %s",
+  "difficulty.current": "The current difficulty is: %s",
+  "difficulty.set": "The difficulty has been set to %s"
+}

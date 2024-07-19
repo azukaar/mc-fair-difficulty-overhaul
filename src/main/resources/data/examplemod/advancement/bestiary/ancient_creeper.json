@@ -1,0 +1,27 @@
+{
+	"parent": "fair_difficulty_overhaul:bestiary/root",
+	"display": {
+		"icon": {
+			"id": "fair_difficulty_overhaul:ancient_creeper_spawn_egg"
+		},
+		"title": {
+			"translate":"advancements.fair_difficulty_overhaul.ancient_creepers.title"
+		},
+		"description": {
+			"color": "#8B0000",
+			"translate":"advancements.fair_difficulty_overhaul.ancient_creepers.description"
+		},
+		"announce_to_chat": false,
+		"hidden": true
+	},
+	"criteria": {
+		"player_killed_entity": {
+			"trigger": "minecraft:player_killed_entity",
+			"conditions": {
+				"entity": {
+					"type": "fair_difficulty_overhaul:ancient_creeper"
+				}
+			}
+		}
+	}
+}
