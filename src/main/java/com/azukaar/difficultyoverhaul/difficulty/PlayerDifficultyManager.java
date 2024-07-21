@@ -106,6 +106,10 @@ public class PlayerDifficultyManager extends SavedData {
     }
   }
 
+  public static String getDifficulty(MinecraftServer server, Player player) {
+    return getDifficulty(server, player.getUUID());
+  }
+
   public static String getDifficultyAtLocaltion(ServerLevel level, int x, int y, int z) {
     AABB areaToCheck = new AABB(
         x - 64,

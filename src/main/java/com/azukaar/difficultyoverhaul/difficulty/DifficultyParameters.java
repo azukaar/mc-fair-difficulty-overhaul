@@ -22,9 +22,9 @@ public class DifficultyParameters {
       case "hard":
         return 1.0f;
       case "expert":
-        return 1.75f;
+        return 1.25f;
       case "nightmare":
-        return 2.5f;
+        return 2.0f;
       case "apocalyptic":
         return 4.0f;
       default:
@@ -49,9 +49,9 @@ public class DifficultyParameters {
       case "hard":
         return 0.0f;
       case "expert":
-        return 0.15f;
+        return 0.2f;
       case "nightmare":
-        return 0.3f;
+        return 0.35f;
       case "apocalyptic":
         return 0.6f;
       default:
@@ -70,13 +70,34 @@ public class DifficultyParameters {
       case "hard":
         return 0.0f;
       case "expert":
-        return 0.06f;
+        return 0.1f;
       case "nightmare":
-        return 0.12f;
+        return 0.15f;
       case "apocalyptic":
         return 0.25f;
       default:
         return 0.0f;
+    }
+  }
+  
+  static public int getRespawnHunger(String difficulty) {
+    switch (difficulty) {
+      case "peaceful":
+        return 20;
+      case "easy":
+        return 20;
+      case "normal":
+        return 20;
+      case "hard":
+        return 20;
+      case "expert":
+        return 10;
+      case "nightmare":
+        return 5;
+      case "apocalyptic":
+        return 1;
+      default:
+        return 20;
     }
   }
 }

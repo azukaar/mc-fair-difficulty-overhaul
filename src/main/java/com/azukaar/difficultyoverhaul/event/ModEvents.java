@@ -1,7 +1,9 @@
 package com.azukaar.difficultyoverhaul.event;
 
 
+import com.azukaar.difficultyoverhaul.difficulty.DifficultyConfig;
 import com.azukaar.difficultyoverhaul.difficulty.DifficultyParameters;
+import com.azukaar.difficultyoverhaul.difficulty.MobDifficultyManager;
 import com.azukaar.difficultyoverhaul.difficulty.PlayerDifficultyManager;
 import com.azukaar.difficultyoverhaul.entity.mobs.AncientCreeper;
 import com.azukaar.difficultyoverhaul.entity.mobs.RaisedZombie;
@@ -23,6 +25,7 @@ import net.minecraft.world.entity.monster.Skeleton;
 import net.minecraft.world.entity.monster.WitherSkeleton;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -30,21 +33,28 @@ import net.neoforged.neoforge.event.CommandEvent;
 import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 
 public class ModEvents {
+
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
         Entity entity =  event.getEntity();
         Level level = event.getLevel();
 
-        if (level instanceof ServerLevel serverLevel) {
+        if (level instanceof ServerLevel serverLevel && entity instanceof LivingEntity) {
             HashMap<Class, Class> evolvedEntities = new HashMap<>();
             evolvedEntities.put(Zombie.class, RaisedZombie.class);
             evolvedEntities.put(Creeper.class, AncientCreeper.class);
         
             if (entity.tickCount == 0) {
                 if (entity.getPersistentData().contains("Processed")) {
+                    return;
+                }
+
+                if(!MobDifficultyManager.canMobSpawn(serverLevel, entity)) {
+                    event.setCanceled(true);
                     return;
                 }
 
@@ -241,6 +251,25 @@ public class ModEvents {
             String customCommand = "difficulty-server " + difficultyArg;
             
             source.getServer().getCommands().performPrefixedCommand(source, customCommand);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
+        Level level = event.getEntity().level();
+
+        if (level instanceof ServerLevel serverLevel) {
+            Player player = event.getEntity();
+            String playerDifficulty = PlayerDifficultyManager.getDifficulty(serverLevel.getServer(), player);
+
+            if (!event.isEndConquered() && DifficultyConfig.SERVER.getMechanicEnabled("hungerNerf", playerDifficulty)) {
+                FoodData foodStats = player.getFoodData();
+                int fl = DifficultyParameters.getRespawnHunger(playerDifficulty);
+                if (fl < 20) {
+                    foodStats.setFoodLevel(fl);
+                    foodStats.setSaturation(0);
+                }
+            }
         }
     }
 }
