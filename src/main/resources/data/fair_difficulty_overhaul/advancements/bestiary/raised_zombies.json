@@ -1,0 +1,27 @@
+{
+	"parent": "fair_difficulty_overhaul:bestiary/root",
+	"display": {
+		"icon": {
+			"item": "fair_difficulty_overhaul:raised_zombie_spawn_egg"
+		},
+		"title": {
+			"translate":"advancements.fair_difficulty_overhaul.raised_zombies.title"
+		},
+		"description": {
+			"color": "#8B0000",
+			"translate":"advancements.fair_difficulty_overhaul.raised_zombies.description"
+		},
+		"announce_to_chat": false,
+		"hidden": true
+	},
+	"criteria": {
+		"player_killed_entity": {
+			"trigger": "minecraft:player_killed_entity",
+			"conditions": {
+				"entity": {
+					"type": "fair_difficulty_overhaul:raised_zombie"
+				}
+			}
+		}
+	}
+}

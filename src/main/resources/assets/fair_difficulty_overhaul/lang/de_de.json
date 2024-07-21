@@ -1,0 +1,40 @@
+{
+  "itemGroup.fair_difficulty_overhaul": "Fair Difficulty Overhaul",
+
+  "difficulty.peaceful": "Friedlich",
+  "difficulty.easy": "Einfach",
+  "difficulty.normal": "Normal",
+  "difficulty.hard": "Schwer",
+  "difficulty.expert": "Experte",
+  "difficulty.nightmare": "Albtraum",
+  "difficulty.apocalyptic": "Apokalyptisch",
+
+  "entity.fair_difficulty_overhaul.raised_zombie": "Erweckter Zombie",
+  "item.fair_difficulty_overhaul.raised_zombie_spawn_egg": "Erweckter Zombie-Spawn-Ei",
+  "entity.fair_difficulty_overhaul.ancient_creeper": "Uralter Creeper",
+  "item.fair_difficulty_overhaul.ancient_creeper_spawn_egg": "Uralter Creeper-Spawn-Ei",
+  
+  "advancements.fair_difficulty_overhaul.root.title": "AFDO Bestiarium",
+  "advancements.fair_difficulty_overhaul.root.description": "Ein Bestiarium des Mods mit etwas Hintergrundgeschichte.",
+  "advancements.fair_difficulty_overhaul.raised_zombies.title": "Erweckte Zombies",
+  "advancements.fair_difficulty_overhaul.raised_zombies.description": "Im Gegensatz zu ihren natürlich verbreiteten Gegenstücken werden diese künstlich mit böser Absicht erweckt, was ihr Verhalten erklärt. Jemand sagte einmal, er hätte einen von ihnen 'Hilf mir' flüstern gehört.",
+  "advancements.fair_difficulty_overhaul.ancient_creepers.title": "Uralte Creeper",
+  "advancements.fair_difficulty_overhaul.ancient_creepers.description": "Diese Creeper haben ein langes Leben hinter sich. Das lange Zurückhalten ihrer Explosion hat ihre Gesichter entstellt und ihre Haut rissig werden lassen.",
+ 
+  "difficulty.setup": "Schwierigkeitseinstellung: \n - Serverschwierigkeit: %s\n - Spielerindividuelle Schwierigkeit: %s\n - Minimale Spielerschwierigkeit: %s\n - Maximale Spielerschwierigkeit: %s",
+  "difficulty.invalid.option": "Ungültige Schwierigkeitsoption. Benutze /difficulty help für eine Liste der Optionen.",
+  "difficulty.server.set": "Die Serverschwierigkeit wurde auf %s gesetzt",
+  "difficulty.min.player.set": "Die minimale Spielerschwierigkeit wurde auf %s gesetzt",
+  "difficulty.max.player.set": "Die maximale Spielerschwierigkeit wurde auf %s gesetzt",
+  "difficulty.per.player.set": "Die spielerindividuelle Schwierigkeit wurde auf %s gesetzt",
+  "difficulty.invalid.setting": "Ungültige Einstellung. Benutze /difficulty-setup, um die Liste der Schlüssel zu sehen.",
+  "difficulty.per.player.disabled": "Spielerindividuelle Schwierigkeit ist deaktiviert.",
+  "difficulty.player.only": "Du musst ein Spieler sein, um diesen Befehl zu benutzen.",
+  "difficulty.personal": "Deine persönliche Schwierigkeit ist: %s",
+  "difficulty.options": "Schwierigkeitsoptionen in Reihenfolge: %s",
+  "difficulty.too.high": "Die von dir gesetzte Schwierigkeit ist höher als die maximal erlaubte Schwierigkeit: %s",
+  "difficulty.too.low": "Die von dir gesetzte Schwierigkeit ist niedriger als die minimal erlaubte Schwierigkeit: %s",
+  "difficulty.personal.set": "Deine persönliche Schwierigkeit wurde auf %s gesetzt",
+  "difficulty.current": "Die aktuelle Schwierigkeit ist: %s",
+  "difficulty.set": "Die Schwierigkeit wurde auf %s gesetzt"
+}
