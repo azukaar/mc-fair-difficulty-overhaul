@@ -9,12 +9,18 @@ import com.azukaar.difficultyoverhaul.entity.mobs.AncientCreeper;
 import com.azukaar.difficultyoverhaul.entity.mobs.RaisedZombie;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.CommandEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.TickEvent.ServerTickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingConversionEvent;
@@ -27,6 +33,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.Skeleton;
@@ -39,6 +46,97 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 
 public class ModEvents {
+    private static final int PURGE_RADIUS = 35;
+    private static final int ENTITIES_PER_TICK = 2;
+    private static boolean hasPurgedTonight = false;
+    private static ArrayList<Entity> entitiesToPurge = new ArrayList<>();
+    private static boolean isPurging = false;
+
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent event) {
+        if (event.phase == TickEvent.Phase.END) {
+            for (ServerLevel level : event.getServer().getAllLevels()) {
+                String dim = level.dimension().location().toString();
+
+                if (!DifficultyConfig.SERVER.getMechanicEnabled("dimensionToNightPurge", dim)) {
+                    continue;
+                }
+
+                long timeOfDay = level.getDayTime() % 24000;
+
+                if (timeOfDay >= 14000 && timeOfDay < 24000 && !hasPurgedTonight) {
+                    startPurge(level);
+                    hasPurgedTonight = true;
+                } else if (timeOfDay >= 0 && timeOfDay < 13000 && hasPurgedTonight) {
+                    hasPurgedTonight = false;
+                }
+            }
+
+            if (isPurging) {
+                continuePurge();
+            }
+        }
+    }
+
+    private static void startPurge(ServerLevel level) {
+        entitiesToPurge.clear();
+        for (Entity entity : level.getAllEntities()) {
+            if (entity.getType().getCategory() == MobCategory.MONSTER && entity.getY() < 64) {
+                entitiesToPurge.add(entity);
+            }
+        }
+        isPurging = true;
+    }
+
+    private static void continuePurge() {
+        Iterator<Entity> iterator = entitiesToPurge.iterator();
+        int count = 0;
+
+        while (iterator.hasNext() && count < ENTITIES_PER_TICK) {
+            Entity entity = iterator.next();
+            List<? extends Player> players = entity.level().players();
+            boolean nearPlayer = false;
+            for (Player player : players) {
+                if (entity.distanceToSqr(player) < PURGE_RADIUS * PURGE_RADIUS) {
+                    nearPlayer = true;
+                    break;
+                }
+            }
+
+            if (!nearPlayer && entity.isAlive()) {
+                entity.remove(Entity.RemovalReason.DISCARDED);
+            }
+
+            iterator.remove();
+            count++;
+        }
+
+        if (entitiesToPurge.isEmpty()) {
+            isPurging = false;
+        }
+    }
+
+    private static void countMobs(ServerTickEvent event) {
+        if (true) {
+            int surfaceMobs = 0;
+            int undergroundMobs = 0;
+
+            for (ServerLevel level : event.getServer().getAllLevels()) {
+                for (Entity entity : level.getAllEntities()) {
+                    if (entity instanceof LivingEntity && entity.getType().getCategory() == MobCategory.MONSTER) {
+                        if (entity.getY() >= 63) {
+                            surfaceMobs++;
+                        } else {
+                            undergroundMobs++;
+                        }
+                    }
+                }
+            }
+
+            System.out.println("[AZU] Mob Count - Surface (>= Y" + 63 + "): " + surfaceMobs +
+                    ", Underground (< Y" + 63 + "): " + undergroundMobs);
+        }
+    }
 
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
@@ -49,6 +147,7 @@ public class ModEvents {
             HashMap<Class, Class> evolvedEntities = new HashMap<>();
             evolvedEntities.put(Zombie.class, RaisedZombie.class);
             evolvedEntities.put(Creeper.class, AncientCreeper.class);
+            Boolean isDayTime = level.isDay();
         
             if (entity.tickCount == 0) {
                 if (entity.getPersistentData().contains("Processed")) {
@@ -105,7 +204,7 @@ public class ModEvents {
                             }
 
                             if (evolvedEntity != null) {
-                                event.getLevel().addFreshEntity(evolvedEntity);
+                                //event.getLevel().addFreshEntity(evolvedEntity);
                                 event.setCanceled(true);
                             }
                         }
@@ -227,7 +326,6 @@ public class ModEvents {
             }
         }
     }
-
 
     @SubscribeEvent
     public static void onCommand(CommandEvent event) {

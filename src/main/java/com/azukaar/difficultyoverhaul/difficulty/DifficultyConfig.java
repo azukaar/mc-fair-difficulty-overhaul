@@ -16,6 +16,7 @@ public class DifficultyConfig {
         
         // Mechanics introduction
         public final ForgeConfigSpec.ConfigValue<String> enableHungerNerf;
+        public final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionToNightPurge;
 
         // list of mobs that only spawn on X difficulty
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> normalMobs;
@@ -46,14 +47,20 @@ public class DifficultyConfig {
                 .define("maxPlayer", "apocalyptic", Server::isValidDifficulty);
                 
             builder
-            .comment("Enable/Disable, or change specific mechanics kick off")
-            .push("mechanics");
+                .pop()
+                .comment("Enable/Disable, or change specific mechanics kick off")
+                .push("mechanics");
 
             enableHungerNerf = builder
                 .comment("This mechanics makes you respawn with less hunger to prevent suicide-feeding.")
                 .define("hungerNerf", "expert", Server::isValidDifficulty);
 
+                dimensionToNightPurge = builder
+                    .comment("This is a purge that happens at the beginning of the night, to prevent the MC 1.18+ large cave population from hoarding the mob cap and preventing surface mobs.")
+                    .defineList("dimensionToNightPurge", new ArrayList<>(List.of("minecraft:overworld")), obj -> obj instanceof String);
+
             builder
+                .pop()
                 .comment("Customize additional spawning rules for mobs.")
                 .push("spawn");
 
@@ -103,10 +110,13 @@ public class DifficultyConfig {
             return "peaceful";
         }
 
-        public Boolean getMechanicEnabled(String mechanic, String diff) {
+
+        public Boolean getMechanicEnabled(String mechanic, String value) {
             switch (mechanic) {
                 case "hungerNerf":
-                    return DifficultyCommand.DIFFICULTY_STRINGS.indexOf(enableHungerNerf.get()) <= DifficultyCommand.DIFFICULTY_STRINGS.indexOf(diff);
+                    return DifficultyCommand.DIFFICULTY_STRINGS.indexOf(enableHungerNerf.get()) <= DifficultyCommand.DIFFICULTY_STRINGS.indexOf(value);
+                case "dimensionToNightPurge":
+                    return dimensionToNightPurge.get().contains(value);
                 default:
                     return false;
             }
