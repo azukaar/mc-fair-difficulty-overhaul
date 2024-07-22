@@ -21,6 +21,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Monster;
@@ -75,6 +76,9 @@ public class ModEvents {
         entitiesToPurge.clear();
         for (Entity entity : level.getAllEntities()) {
             if (entity.getType().getCategory() == MobCategory.MONSTER && entity.getY() < 64) {
+                if (shouldIgnoreEntity(entity)) {
+                    continue;
+                }
                 entitiesToPurge.add(entity);
             }
         }
@@ -129,6 +133,21 @@ public class ModEvents {
             System.out.println("[AZU] Mob Count - Surface (>= Y" + 63 + "): " + surfaceMobs +
                     ", Underground (< Y" + 63 + "): " + undergroundMobs);
         }
+    }
+
+    private static boolean shouldIgnoreEntity(Entity entity) {
+        boolean isNamed = entity.hasCustomName();
+        if (entity instanceof Mob) {
+            boolean isPersistent = !((Mob) entity).removeWhenFarAway(0);
+            
+            return isNamed || isPersistent;
+        }
+
+        if (!entity.getPassengers().isEmpty() || entity.isPassenger()) {
+            return true;
+        }
+
+        return true;
     }
 
     @SubscribeEvent
