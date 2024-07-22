@@ -27,7 +27,7 @@ public class SmellerGoal extends Goal {
   }
 
   protected AABB getTargetSearchArea(double pTargetDistance) {
-    return this.monster.getBoundingBox().inflate(6.0, 6.0, 6.0);
+    return this.monster.getBoundingBox().inflate(pTargetDistance, pTargetDistance / 2, pTargetDistance);
   }
 
 
@@ -37,7 +37,7 @@ public class SmellerGoal extends Goal {
       return;
     }
     
-    AABB searchArea = getTargetSearchArea(6.0);
+    AABB searchArea = getTargetSearchArea(12.0);
     for(Player entity : this.level.getEntitiesOfClass(Player.class, searchArea)) {
       if(entity != null && !entity.isSpectator() && !entity.isCreative() && PlayerDifficultyManager.isDifficultyOver(entity.getServer(), entity, "expert")) {
         this.monster.setTarget(entity);

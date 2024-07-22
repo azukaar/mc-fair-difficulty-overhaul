@@ -1,6 +1,5 @@
 package com.azukaar.difficultyoverhaul.event;
 
-
 import com.azukaar.difficultyoverhaul.difficulty.DifficultyConfig;
 import com.azukaar.difficultyoverhaul.difficulty.DifficultyParameters;
 import com.azukaar.difficultyoverhaul.difficulty.MobDifficultyManager;
@@ -9,6 +8,9 @@ import com.azukaar.difficultyoverhaul.entity.mobs.AncientCreeper;
 import com.azukaar.difficultyoverhaul.entity.mobs.RaisedZombie;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ArrayList;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.nbt.CompoundTag;
@@ -19,6 +21,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.Skeleton;
@@ -34,36 +37,127 @@ import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 
 public class ModEvents {
+    private static final int PURGE_RADIUS = 35;
+    private static final int ENTITIES_PER_TICK = 2;
+    private static boolean hasPurgedTonight = false;
+    private static ArrayList<Entity> entitiesToPurge = new ArrayList<>();
+    private static boolean isPurging = false;
+
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post event) {
+        for (ServerLevel level : event.getServer().getAllLevels()) {
+            String dim = level.dimension().location().toString();
+
+            if (!DifficultyConfig.SERVER.getMechanicEnabled("dimensionToNightPurge", dim)) {
+                continue;
+            }
+
+            long timeOfDay = level.getDayTime() % 24000;
+
+            if (timeOfDay >= 14000 && timeOfDay < 24000 && !hasPurgedTonight) {
+                startPurge(level);
+                hasPurgedTonight = true;
+            } else if (timeOfDay >= 0 && timeOfDay < 13000 && hasPurgedTonight) {
+                hasPurgedTonight = false;
+            }
+        }
+
+        if (isPurging) {
+            continuePurge();
+        }
+    }
+
+    private static void startPurge(ServerLevel level) {
+        entitiesToPurge.clear();
+        for (Entity entity : level.getAllEntities()) {
+            if (entity.getType().getCategory() == MobCategory.MONSTER && entity.getY() < 64) {
+                entitiesToPurge.add(entity);
+            }
+        }
+        isPurging = true;
+    }
+
+    private static void continuePurge() {
+        Iterator<Entity> iterator = entitiesToPurge.iterator();
+        int count = 0;
+
+        while (iterator.hasNext() && count < ENTITIES_PER_TICK) {
+            Entity entity = iterator.next();
+            List<? extends Player> players = entity.level().players();
+            boolean nearPlayer = false;
+            for (Player player : players) {
+                if (entity.distanceToSqr(player) < PURGE_RADIUS * PURGE_RADIUS) {
+                    nearPlayer = true;
+                    break;
+                }
+            }
+
+            if (!nearPlayer && entity.isAlive()) {
+                entity.remove(Entity.RemovalReason.DISCARDED);
+            }
+
+            iterator.remove();
+            count++;
+        }
+
+        if (entitiesToPurge.isEmpty()) {
+            isPurging = false;
+        }
+    }
+
+    private static void countMobs(ServerTickEvent event) {
+        if (true) {
+            int surfaceMobs = 0;
+            int undergroundMobs = 0;
+
+            for (ServerLevel level : event.getServer().getAllLevels()) {
+                for (Entity entity : level.getAllEntities()) {
+                    if (entity instanceof LivingEntity && entity.getType().getCategory() == MobCategory.MONSTER) {
+                        if (entity.getY() >= 63) {
+                            surfaceMobs++;
+                        } else {
+                            undergroundMobs++;
+                        }
+                    }
+                }
+            }
+
+            System.out.println("[AZU] Mob Count - Surface (>= Y" + 63 + "): " + surfaceMobs +
+                    ", Underground (< Y" + 63 + "): " + undergroundMobs);
+        }
+    }
 
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
-        Entity entity =  event.getEntity();
+        Entity entity = event.getEntity();
         Level level = event.getLevel();
 
         if (level instanceof ServerLevel serverLevel && entity instanceof LivingEntity) {
             HashMap<Class, Class> evolvedEntities = new HashMap<>();
             evolvedEntities.put(Zombie.class, RaisedZombie.class);
             evolvedEntities.put(Creeper.class, AncientCreeper.class);
-        
+
             if (entity.tickCount == 0) {
                 if (entity.getPersistentData().contains("Processed")) {
                     return;
                 }
 
-                if(!MobDifficultyManager.canMobSpawn(serverLevel, entity)) {
+                if (!MobDifficultyManager.canMobSpawn(serverLevel, entity)) {
                     event.setCanceled(true);
                     return;
                 }
 
                 // Chance to power creeper
-                if(entity instanceof Creeper && !((Creeper)entity).isPowered()) {
+                if (entity instanceof Creeper && !((Creeper) entity).isPowered()) {
                     Creeper creeper = (Creeper) entity;
                     int chanceOfPowered = creeper.getRandom().nextInt(100);
-                    float poweredChance =  DifficultyParameters.getAddPoweredChances(PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, creeper)) * 100;
-                    if(chanceOfPowered < poweredChance) {
+                    float poweredChance = DifficultyParameters.getAddPoweredChances(
+                            PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, creeper)) * 100;
+                    if (chanceOfPowered < poweredChance) {
                         CompoundTag poweredCreeper = creeper.saveWithoutId(new CompoundTag());
                         poweredCreeper.putBoolean("powered", true);
                         creeper.readAdditionalSaveData(poweredCreeper);
@@ -71,11 +165,12 @@ public class ModEvents {
                 }
 
                 // Chance to wither skeleton
-                if(entity instanceof Skeleton && !(entity instanceof WitherSkeleton)) {
+                if (entity instanceof Skeleton && !(entity instanceof WitherSkeleton)) {
                     Skeleton skeleton = (Skeleton) entity;
                     int chanceOfWither = skeleton.getRandom().nextInt(100);
-                    float witherChance =  DifficultyParameters.getAddPoweredChances(PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, skeleton)) * 100;
-                    if(chanceOfWither < witherChance) {
+                    float witherChance = DifficultyParameters.getAddPoweredChances(
+                            PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, skeleton)) * 100;
+                    if (chanceOfWither < witherChance) {
                         CompoundTag originalNBT = skeleton.saveWithoutId(new CompoundTag());
                         originalNBT.remove("UUID");
                         WitherSkeleton ws = skeleton.convertTo(EntityType.WITHER_SKELETON, true);
@@ -83,15 +178,16 @@ public class ModEvents {
                         EventHooks.onLivingConvert(skeleton, ws);
                         event.setCanceled(true);
                     }
-                }   
+                }
 
                 for (Class entityClass : evolvedEntities.keySet()) {
                     if (entityClass.isInstance(entity) && !evolvedEntities.get(entityClass).isInstance(entity)) {
-                        String currentDifficulty = PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, entity);
+                        String currentDifficulty = PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel,
+                                entity);
                         int chanceOfSpawn = entity.getRandom().nextInt(100);
                         float evolutionChances = DifficultyParameters.getEvolutionChances(currentDifficulty) * 100;
-                        
-                        if(chanceOfSpawn < evolutionChances) {
+
+                        if (chanceOfSpawn < evolutionChances) {
                             Entity evolvedEntity = null;
                             if (entityClass == Zombie.class) {
                                 evolvedEntity = RaisedZombie.fromZombie((Zombie) entity);
@@ -100,7 +196,7 @@ public class ModEvents {
                             }
 
                             if (evolvedEntity != null) {
-                                event.getLevel().addFreshEntity(evolvedEntity);
+                                //event.getLevel().addFreshEntity(evolvedEntity);
                                 event.setCanceled(true);
                             }
                         }
@@ -110,12 +206,13 @@ public class ModEvents {
                 }
 
                 // Change to give role to zombies
-                if(entity instanceof RaisedZombie) {
+                if (entity instanceof RaisedZombie) {
                     RaisedZombie rz = (RaisedZombie) entity;
                     int chanceOfRole = rz.getRandom().nextInt(100);
-                    float roleChance =  DifficultyParameters.getAddPoweredChances(PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, rz)) * 100;
-                    if(chanceOfRole < roleChance) {
-                        HashMap<Integer, ItemStack> possibleRoles = new HashMap<>();                        
+                    float roleChance = DifficultyParameters.getAddPoweredChances(
+                            PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, rz)) * 100;
+                    if (chanceOfRole < roleChance) {
+                        HashMap<Integer, ItemStack> possibleRoles = new HashMap<>();
                         possibleRoles.put(0, new ItemStack(Items.DIAMOND_PICKAXE));
                         possibleRoles.put(1, new ItemStack(Items.DIAMOND_SHOVEL));
                         possibleRoles.put(2, new ItemStack(Items.DIAMOND_AXE));
@@ -129,18 +226,19 @@ public class ModEvents {
 
                         rz.setItemSlot(EquipmentSlot.MAINHAND, possibleRoles.get(role));
                     }
-                    
+
                     entity.getPersistentData().putBoolean("Processed", true);
                 }
-                
+
                 // Change to give armour/swprds to monsters
-                if(entity instanceof Zombie || entity instanceof Skeleton) {
+                if (entity instanceof Zombie || entity instanceof Skeleton) {
                     int chanceOfGear = entity.getRandom().nextInt(100);
-                    float gearChance =  DifficultyParameters.getAddPoweredChances(PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, entity)) * 100;
-                    if(chanceOfGear < gearChance) {
+                    float gearChance = DifficultyParameters.getAddPoweredChances(
+                            PlayerDifficultyManager.getDifficultyAtLocaltion(serverLevel, entity)) * 100;
+                    if (chanceOfGear < gearChance) {
                         int nbOfGear = entity.getRandom().nextInt(5);
 
-                        HashMap<Integer, ItemStack> possibleGear = new HashMap<>();                        
+                        HashMap<Integer, ItemStack> possibleGear = new HashMap<>();
                         possibleGear.put(0, new ItemStack(Items.DIAMOND_SWORD));
                         possibleGear.put(1, new ItemStack(Items.GOLDEN_SWORD));
                         possibleGear.put(2, new ItemStack(Items.IRON_SWORD));
@@ -161,11 +259,11 @@ public class ModEvents {
                         possibleGear.put(13, new ItemStack(Items.GOLDEN_BOOTS));
                         possibleGear.put(14, new ItemStack(Items.IRON_BOOTS));
 
-                        for(int i = 0; i < nbOfGear; i++) {
+                        for (int i = 0; i < nbOfGear; i++) {
                             int role = entity.getRandom().nextInt(possibleGear.size());
                             EquipmentSlot slot = EquipmentSlot.MAINHAND;
-                            
-                            if(role >= 12) {
+
+                            if (role >= 12) {
                                 slot = EquipmentSlot.FEET;
                             } else if (role >= 9) {
                                 slot = EquipmentSlot.LEGS;
@@ -175,14 +273,14 @@ public class ModEvents {
                                 slot = EquipmentSlot.HEAD;
                             }
 
-                            if(((LivingEntity)entity).getItemBySlot(slot).isEmpty()) {
-                                if(entity instanceof LivingEntity) {
-                                    ((LivingEntity)entity).setItemSlot(slot, possibleGear.get(role));
+                            if (((LivingEntity) entity).getItemBySlot(slot).isEmpty()) {
+                                if (entity instanceof LivingEntity) {
+                                    ((LivingEntity) entity).setItemSlot(slot, possibleGear.get(role));
                                 }
                             }
                         }
                     }
-                    
+
                     entity.getPersistentData().putBoolean("Processed", true);
                 }
             }
@@ -200,11 +298,10 @@ public class ModEvents {
                 float difficultyFactor = DifficultyParameters.getDamageMultiplier(difficulty);
                 DamageSource source = event.getSource();
 
-
                 if (source.getEntity() instanceof Monster) {
-                    // Change damage for  difficulty
+                    // Change damage for difficulty
                     float newDamage = event.getAmount() * difficultyFactor;
-                    if(newDamage <= 0) {
+                    if (newDamage <= 0) {
                         event.setCanceled(true);
                     }
                     event.setAmount(newDamage);
@@ -213,43 +310,45 @@ public class ModEvents {
 
                     if (difficulty.equals("peaceful")) {
                         event.setCanceled(true);
-                    } else if(difficulty.equals("easy") && currentHealth <= 10) {
+                    } else if (difficulty.equals("easy") && currentHealth <= 10) {
                         event.setCanceled(true);
-                    } else if(difficulty.equals("normal") && currentHealth < 2) {
+                    } else if (difficulty.equals("normal") && currentHealth < 2) {
                         event.setCanceled(true);
                     }
                 }
-            } 
+            }
 
             // else if (event.getSource().getEntity() instanceof Player) {
-            //     Player player = (Player) event.getSource().getEntity();
-            //     float difficultyFactor = DifficultyParameters.getDamageMultiplier(PlayerDifficultyManager.getDifficulty(serverLevel, player.getUUID()));
-                
-            //     // Decrease damage for higher difficulties
-            //     float newDamage = event.getAmount() / difficultyFactor;
+            // Player player = (Player) event.getSource().getEntity();
+            // float difficultyFactor =
+            // DifficultyParameters.getDamageMultiplier(PlayerDifficultyManager.getDifficulty(serverLevel,
+            // player.getUUID()));
 
-            //     event.setNewDamage(newDamage);            
+            // // Decrease damage for higher difficulties
+            // float newDamage = event.getAmount() / difficultyFactor;
+
+            // event.setNewDamage(newDamage);
             // }
         }
     }
 
-
     @SubscribeEvent
     public static void onCommand(CommandEvent event) {
         String command = event.getParseResults().getReader().getString().toLowerCase();
-        
-        if (command.startsWith("difficulty easy") || command.startsWith("difficulty normal") || command.startsWith("difficulty hard")) {
+
+        if (command.startsWith("difficulty easy") || command.startsWith("difficulty normal")
+                || command.startsWith("difficulty hard")) {
             event.setCanceled(true);
             // create command /difficulty server instead
-            
+
             String[] parts = command.split(" ", 2);
 
             String difficultyArg = parts[1];
-            
+
             // Execute your custom difficulty command
             CommandSourceStack source = event.getParseResults().getContext().getSource();
             String customCommand = "difficulty-server " + difficultyArg;
-            
+
             source.getServer().getCommands().performPrefixedCommand(source, customCommand);
         }
     }
