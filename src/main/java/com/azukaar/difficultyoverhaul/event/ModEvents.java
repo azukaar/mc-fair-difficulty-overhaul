@@ -240,6 +240,12 @@ public class ModEvents {
                         possibleRoles.put(5, new ItemStack(Blocks.COBBLESTONE, 32));
                         possibleRoles.put(6, new ItemStack(Blocks.STONE, 32));
                         possibleRoles.put(7, new ItemStack(Blocks.GRASS_BLOCK, 32));
+                        possibleRoles.put(8, new ItemStack(Items.SPYGLASS));
+
+                        // Spy glass is half as likely as the other roles
+                        if (chanceOfRole < roleChance / 2) {
+                            possibleRoles.remove(8);
+                        }
 
                         int role = rz.getRandom().nextInt(possibleRoles.size());
 
