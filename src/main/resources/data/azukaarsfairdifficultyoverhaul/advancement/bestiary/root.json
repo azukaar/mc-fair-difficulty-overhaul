@@ -1,0 +1,22 @@
+{
+	"display": {
+		"icon": {
+			"id": "minecraft:iron_sword"
+		},
+		"title": {
+			"translate": "advancements.azukaarsfairdifficultyoverhaul.root.title"
+		},
+		"description": {
+			"color": "#CCCCCC",
+			"translate": "advancements.azukaarsfairdifficultyoverhaul.root.description"
+		},
+		"background": "minecraft:textures/block/deepslate.png",
+		"show_toast": false,
+		"announce_to_chat": false
+	},
+	"criteria": {
+		"automatic": {
+			"trigger": "minecraft:tick"
+		}
+	}
+}
