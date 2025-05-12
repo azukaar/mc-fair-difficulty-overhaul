@@ -3,6 +3,7 @@ package com.azukaar.difficultyoverhaul.event;
 import com.azukaar.difficultyoverhaul.difficulty.DifficultyConfig;
 import com.azukaar.difficultyoverhaul.difficulty.DifficultyParameters;
 import com.azukaar.difficultyoverhaul.difficulty.MobDifficultyManager;
+import com.azukaar.difficultyoverhaul.difficulty.PlayerAttributesManager;
 import com.azukaar.difficultyoverhaul.difficulty.PlayerDifficultyManager;
 import com.azukaar.difficultyoverhaul.entity.mobs.AncientCreeper;
 import com.azukaar.difficultyoverhaul.entity.mobs.RaisedZombie;
@@ -15,9 +16,12 @@ import java.util.ArrayList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -34,15 +38,21 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.CommandEvent;
 import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.SleepFinishedTimeEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.bus.api.SubscribeEvent;
+
+import java.util.Random;
 
 public class ModEvents {
     private static final int PURGE_RADIUS = 35;
@@ -50,6 +60,36 @@ public class ModEvents {
     private static boolean hasPurgedTonight = false;
     private static ArrayList<Entity> entitiesToPurge = new ArrayList<>();
     private static boolean isPurging = false;
+    private static int sleepCheckCounter = 0;
+    private static final Random RANDOM = new Random();
+
+    @SubscribeEvent
+    public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        Player player = event.getEntity();
+
+        // Only process server-side
+        if (player.level().isClientSide()) {
+            return;
+        }
+
+        if (DifficultyConfig.SERVER.isSoftHardcoreEnabled()) {
+            // Check if player health should be restricted and potentially set to spectator
+            int min = DifficultyConfig.SERVER.getHealthDeathPenaltyMinimum();
+            double playerHealth = player.getMaxHealth();
+            if (playerHealth <= min) {
+                // set player to spectate mode
+                if (player instanceof ServerPlayer serverPlayer) {
+                    serverPlayer.setGameMode(GameType.SPECTATOR);
+
+                    // send message to player
+                    Component message = Component.translatable("messages.azukaarsfairdifficultyoverhaul.softhardcore")
+                            .withStyle(ChatFormatting.DARK_PURPLE);
+
+                    player.sendSystemMessage(message);
+                }
+            }
+        }
+    }
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
@@ -67,6 +107,63 @@ public class ModEvents {
                 hasPurgedTonight = true;
             } else if (timeOfDay >= 0 && timeOfDay < 13000 && hasPurgedTonight) {
                 hasPurgedTonight = false;
+            }
+
+            // Sleep check
+            if (!level.dimensionType().hasFixedTime()
+                    && DifficultyConfig.SERVER.getMechanicEnabled("dimensionToFixSleep", dim)) {
+                sleepCheckCounter++;
+                // check every 20 ticks
+                if (sleepCheckCounter < 20) {
+                    return;
+                }
+                sleepCheckCounter = 0;
+
+                // if night
+                if (timeOfDay >= 12541 && timeOfDay < 23460) {
+                    int playerInBed = 0;
+                    int totalPlayers = 0;
+                    int requiredPercentage = level.getGameRules().getInt(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE);
+
+                    // Get all players in the level
+                    for (ServerPlayer player : level.getPlayers(player -> true)) {
+                        String playerDifficulty = PlayerDifficultyManager.getDifficulty(level.getServer(),
+                                player.getUUID());
+
+                        // Skip if player is a spectator or if they cannot sleep
+                        if (player.isSpectator()
+                                || DifficultyConfig.SERVER.getMechanicEnabled("noSleep", playerDifficulty)) {
+                            continue;
+                        }
+
+                        totalPlayers++;
+
+                        // Check if player is sleeping
+                        if (player.isSleeping()) {
+                            playerInBed++;
+                        }
+                    }
+
+                    // Check if the percentage of players sleeping is enough
+                    if (totalPlayers > 0 && requiredPercentage > 0 && playerInBed > 0) {
+                        int percentage = (int) ((float) playerInBed / totalPlayers * 100);
+
+                        if (percentage >= requiredPercentage) {
+                            // Calculate time to morning
+                            long timeToAdd = 24000L - (level.getDayTime() % 24000L);
+
+                            // Set the time to morning
+                            level.setDayTime(level.getDayTime() + timeToAdd);
+
+                            // Optional: Reset weather if it's storming
+                            if (level.isRaining()) {
+                                level.setWeatherParameters(6000, 0, false, false);
+                            }
+
+                            NeoForge.EVENT_BUS.post(new SleepFinishedTimeEvent(level, timeToAdd, timeToAdd));
+                        }
+                    }
+                }
             }
         }
 
@@ -142,7 +239,7 @@ public class ModEvents {
         boolean isNamed = entity.hasCustomName();
         if (entity instanceof Mob) {
             boolean isPersistent = !((Mob) entity).removeWhenFarAway(0);
-            
+
             return isNamed || isPersistent;
         }
 
@@ -218,7 +315,7 @@ public class ModEvents {
                             }
 
                             if (evolvedEntity != null) {
-                                //event.getLevel().addFreshEntity(evolvedEntity);
+                                // event.getLevel().addFreshEntity(evolvedEntity);
                                 event.setCanceled(true);
                             }
                         }
@@ -389,18 +486,75 @@ public class ModEvents {
             Player player = event.getEntity();
             String playerDifficulty = PlayerDifficultyManager.getDifficulty(serverLevel.getServer(), player);
 
-            if (!event.isEndConquered() && DifficultyConfig.SERVER.getMechanicEnabled("hungerNerf", playerDifficulty)) {
-                FoodData foodStats = player.getFoodData();
-                int fl = DifficultyParameters.getRespawnHunger(playerDifficulty);
-                if (fl < 20) {
-                    foodStats.setFoodLevel(fl);
-                    foodStats.setSaturation(0);
+            if (!event.isEndConquered()) {
+                // Nerf food respawn
+                if (DifficultyConfig.SERVER.getMechanicEnabled("hungerNerf", playerDifficulty)) {
+                    FoodData foodStats = player.getFoodData();
+                    int fl = DifficultyParameters.getRespawnHunger(playerDifficulty);
+                    if (fl < 20) {
+                        foodStats.setFoodLevel(fl);
+                        foodStats.setSaturation(0);
+                    }
+                }
+
+                // Teleport to random location
+                int respawnDistance = DifficultyConfig.SERVER.getRespawnDistance(playerDifficulty);
+                if (respawnDistance > 0) {
+                    player.level().getServer().tell(new net.minecraft.server.TickTask(0, () -> {
+                        boolean respawned = false;
+                        int attempts = 0;
+                        while (!respawned) {
+                            Vec3 currentPos = player.position();
+
+                            int offsetX = RANDOM.nextInt(respawnDistance * 2) - respawnDistance;
+                            int offsetZ = RANDOM.nextInt(respawnDistance * 2) - respawnDistance;
+
+                            // loop from top to bottom, until reaching a solid block
+                            int newY = 320;
+                            int numberOfAirBlocks = 0;
+                            for (int y = 320; y > -63; y--) {
+                                if (player.level().getBlockState(new BlockPos((int) currentPos.x + offsetX, y,
+                                        (int) currentPos.z + offsetZ)).isSolidRender(player.level(), new BlockPos(
+                                                (int) currentPos.x + offsetX, y, (int) currentPos.z + offsetZ))) {
+                                    if (numberOfAirBlocks > 1) {
+                                        // Teleport the player
+                                        newY = y;
+                                        respawned = true;
+                                        player.teleportTo((int) currentPos.x + offsetX, newY + 1,
+                                                (int) currentPos.z + offsetZ);
+                                        break;
+                                    } else {
+                                        numberOfAirBlocks = 0;
+                                    }
+                                } else {
+                                    numberOfAirBlocks++;
+                                }
+                            }
+
+                            attempts++;
+                            if (attempts > 20) {
+                                // If we can't find a solid block, just let the normal respawn happen
+                                break;
+                            }
+                        }
+                    }));
+                }
+
+                // perma-lose health on death
+                int pen = DifficultyConfig.SERVER.getHealthDeathPenalty(playerDifficulty);
+                if (pen != 0) {
+                    PlayerAttributesManager playerPenaltyManager = PlayerAttributesManager.get(serverLevel.getServer());
+
+                    System.out
+                            .println("Player " + player.getName().getString() + " has died. Applying health penalty of "
+                                    + pen + " hearts.");
+
+                    playerPenaltyManager.addPlayerMaxHealth(player, pen);
                 }
             }
         }
     }
 
-        
     @SubscribeEvent
     public static void onCanPlayerSleep(CanPlayerSleepEvent event) {
         Level level = event.getEntity().level();
@@ -415,11 +569,10 @@ public class ModEvents {
                 System.out.println("Player " + player.getName().getString() + " cannot sleep.");
                 event.setProblem(Player.BedSleepingProblem.OTHER_PROBLEM);
 
-                
                 // Create a custom message that mentions the difficulty
                 Component message = Component.translatable("messages.azukaarsfairdifficultyoverhaul.nosleep")
-                    .withStyle(ChatFormatting.RED);
-                
+                        .withStyle(ChatFormatting.RED);
+
                 player.sendSystemMessage(message);
             }
         }

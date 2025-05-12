@@ -27,6 +27,8 @@
   "difficulty.min.player.set": "La difficulté minimale du joueur a été définie sur %s",
   "difficulty.max.player.set": "La difficulté maximale du joueur a été définie sur %s",
   "difficulty.per.player.set": "La difficulté par joueur a été définie sur %s",
+  "difficulty.lock.set": "Le verouillage de difficulté a été définie sur %s",
+  "difficulty.lock.set.null": "Le verouillage de difficulté a été désactivée",
   "difficulty.invalid.setting": "Paramètre invalide. Utilisez /difficulty-setup pour voir la liste des clés.",
   "difficulty.per.player.disabled": "La difficulté par joueur est désactivée.",
   "difficulty.player.only": "Vous devez être un joueur pour utiliser cette commande.",
@@ -37,6 +39,11 @@
   "difficulty.personal.set": "Votre difficulté personnelle a été définie sur %s",
   "difficulty.current": "La difficulté actuelle est : %s",
   "difficulty.set": "La difficulté a été définie sur %s",
+  "difficulty.health.modifier.invalid": "Erreur: La valeur de pénalité de santé ne peut pas être négative.",
+  "difficulty.health.modifier.set": "Modificateur de santé défini à %s.",
+  "difficulty.health.modifier.get": "Modificateur de santé actuel: %s.",
+  "difficulty.change.not.allowed": "Vous ne pouvez plus réduire votre difficulté.",
 
-  "messages.azukaarsfairdifficultyoverhaul.nosleep": "Vous avez vu trop d'horreurs pour dormir."
+  "messages.azukaarsfairdifficultyoverhaul.nosleep": "Vous avez vu trop d'horreurs pour dormir.",
+  "messages.azukaarsfairdifficultyoverhaul.softhardcore": "Vous êtes mort avec le paramètre soft-hardcore activé et vous n'avez plus de vies. Vous êtes maintenant bloqué en mode Spectateur. GG !"
 }

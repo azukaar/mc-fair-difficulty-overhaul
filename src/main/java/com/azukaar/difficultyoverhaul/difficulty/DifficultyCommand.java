@@ -1,10 +1,13 @@
 package com.azukaar.difficultyoverhaul.difficulty;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -16,6 +19,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 public class DifficultyCommand {
   public static final List<String> VANILLA_DIFFICULTY_STRINGS = List.of(
@@ -68,6 +74,40 @@ public class DifficultyCommand {
                     .then(Commands.argument("value", StringArgumentType.string())
                         .executes(context -> setSetup(context, context.getArgument("key", String.class),
                             context.getArgument("value", String.class)))))));
+    
+    // set max health penalty
+    dispatcher.register(
+        Commands.literal("difficulty-health-modifier")
+            .requires(source -> source.hasPermission(2))
+            .executes(DifficultyCommand::getSetup)
+            .then(Commands.literal("set")
+                .then(Commands.argument("value", IntegerArgumentType.integer())
+                    .executes(context -> setOwnHealthPenalty(context, context.getArgument("value", Integer.class))))));
+
+    dispatcher.register(
+        Commands.literal("difficulty-health-modifier")
+            .requires(source -> source.hasPermission(2))
+            .executes(DifficultyCommand::getSetup)
+            .then(Commands.literal("set")
+                .then(Commands.argument("player", StringArgumentType.string())
+                    .then(Commands.argument("value", IntegerArgumentType.integer())
+                        .executes(context -> setHealthPenalty(context, GetUUIDFromUsername(context, context.getArgument("player", String.class)),
+                            context.getArgument("value", Integer.class)))))));
+
+    dispatcher.register(
+        Commands.literal("difficulty-health-modifier")
+            .requires(source -> source.hasPermission(2))
+            .executes(DifficultyCommand::getSetup)
+            .then(Commands.literal("get")
+                    .executes(context -> getOwnHealthPenalty(context))));
+
+    dispatcher.register(
+        Commands.literal("difficulty-health-modifier")
+            .requires(source -> source.hasPermission(2))
+            .executes(DifficultyCommand::getSetup)
+            .then(Commands.literal("get")
+                .then(Commands.argument("player", StringArgumentType.string())
+                    .executes(context -> getHealthPenalty(context, GetUUIDFromUsername(context, context.getArgument("player", String.class)))))));
   }
 
   private static Component getTranslatedDifficulty(String difficulty) {
@@ -79,10 +119,21 @@ public class DifficultyCommand {
         DifficultyConfig.SERVER.serverDifficulty.get(),
         DifficultyConfig.SERVER.perPlayerDifficulty.get(),
         DifficultyConfig.SERVER.minPlayerDifficulty.get(),
-        DifficultyConfig.SERVER.maxPlayerDifficulty.get()).getString();
+        DifficultyConfig.SERVER.maxPlayerDifficulty.get(),
+        DifficultyConfig.SERVER.enableDifficultyLockFrom.get()
+        ).getString();
 
     context.getSource().sendSuccess(() -> Component.literal(setup), false);
     return 1;
+  }
+
+  private static UUID GetUUIDFromUsername(CommandContext<CommandSourceStack> context, String username) {
+    ServerPlayer player = context.getSource().getServer().getPlayerList().getPlayerByName(username);
+    if (player != null) {
+      return player.getUUID();
+    }
+    context.getSource().sendFailure(Component.translatable("difficulty.player.not.found", username));
+    return null;
   }
 
   private static CompletableFuture<Suggestions> suggestConfigName(CommandContext<CommandSourceStack> context,
@@ -91,11 +142,23 @@ public class DifficultyCommand {
     builder.suggest("perPlayerDifficulty");
     builder.suggest("minPlayerDifficulty");
     builder.suggest("maxPlayerDifficulty");
+    builder.suggest("enableDifficultyLockFrom");
     return builder.buildFuture();
   }
 
   private static int setSetup(CommandContext<CommandSourceStack> context, String key, String value) {
-    if (key.equals("serverDifficulty") || key.equals("minPlayerDifficulty") || key.equals("maxPlayerDifficulty")) {
+    if (key.equals("serverDifficulty") || key.equals("minPlayerDifficulty") || key.equals("maxPlayerDifficulty") || key.equals("enableDifficultyLockFrom")) {
+      System.out.println("Setting " + key + " to '" + value + "'");
+
+      if(key.equals("enableDifficultyLockFrom") && (value.equals("")|| value.equals("null"))) {
+        System.out.println("Setting " + key + " to null");
+          DifficultyConfig.SERVER.enableDifficultyLockFrom.set(value);
+          DifficultyConfig.SERVER.enableDifficultyLockFrom.save();
+          context.getSource()
+              .sendSuccess(() -> Component.translatable("difficulty.lock.set.null", value), true);
+              return 1;
+      }
+
       if (!DifficultyCommand.DIFFICULTY_STRINGS.contains(value.toLowerCase())) {
         context.getSource().sendFailure(Component.translatable("difficulty.invalid.option"));
         return 0;
@@ -121,6 +184,12 @@ public class DifficultyCommand {
           DifficultyConfig.SERVER.maxPlayerDifficulty.save();
           context.getSource()
               .sendSuccess(() -> Component.translatable("difficulty.max.player.set", translatedDifficulty), true);
+          break;
+        case "enableDifficultyLockFrom":
+          DifficultyConfig.SERVER.enableDifficultyLockFrom.set(value);
+          DifficultyConfig.SERVER.enableDifficultyLockFrom.save();
+          context.getSource()
+              .sendSuccess(() -> Component.translatable("difficulty.lock.set", value), true);
           break;
       }
 
@@ -199,6 +268,12 @@ public class DifficultyCommand {
       return 0;
     }
 
+    String currentDifficulty = PlayerDifficultyManager.getDifficulty(level.getServer(), player.getUUID());
+    if (!DifficultyConfig.SERVER.isDifficultyChangeAllowed(currentDifficulty, difficulty)) {
+      context.getSource().sendFailure(Component.translatable("difficulty.change.not.allowed", currentDifficulty, difficulty));
+      return 0;
+    }
+
     PlayerDifficultyManager.setDifficulty(level.getServer(), player.getUUID(), difficulty);
     
     Component translatedDifficulty = getTranslatedDifficulty(difficulty);
@@ -225,6 +300,12 @@ public class DifficultyCommand {
       return 1;
     }
 
+    String currentDifficulty = DifficultyConfig.SERVER.serverDifficulty.get();
+    if(!DifficultyConfig.SERVER.isDifficultyChangeAllowed(currentDifficulty, factor)) {
+      context.getSource().sendFailure(Component.translatable("difficulty.change.not.allowed", currentDifficulty, factor));
+      return 0;
+    }
+
     if (VANILLA_DIFFICULTY_STRINGS.contains(factor)) {
       context.getSource().getServer().setDifficulty(Difficulty.byName(factor), true);
     } else {
@@ -244,5 +325,50 @@ public class DifficultyCommand {
     DIFFICULTY_STRINGS.forEach(builder::suggest);
     builder.suggest("help");
     return builder.buildFuture();
+  }
+
+  private static int setHealthPenalty(CommandContext<CommandSourceStack> context, UUID playerUuid, int value) {
+    ServerLevel serverLevel = context.getSource().getLevel();
+    PlayerAttributesManager playerAttributesManager = PlayerAttributesManager.get(serverLevel.getServer());
+
+    playerAttributesManager.setPlayerMaxHealth(context.getSource().getServer().getPlayerList().getPlayer(playerUuid), value);
+
+    context.getSource().sendSuccess(() -> Component.translatable("difficulty.health.modifier.set", value), true);
+    return 1;
+  }
+
+  private static int setOwnHealthPenalty(CommandContext<CommandSourceStack> context, int value) {
+    UUID playerUuid;
+    try {
+      playerUuid = context.getSource().getPlayerOrException().getUUID();
+    } catch (CommandSyntaxException e) {
+      e.printStackTrace();
+      context.getSource().sendFailure(Component.translatable("difficulty.player.only"));
+      return 0;
+    }
+
+    return setHealthPenalty(context, playerUuid, value);
+  }
+
+  private static int getHealthPenalty(CommandContext<CommandSourceStack> context, UUID playerUuid) {
+    ServerLevel serverLevel = context.getSource().getLevel();
+    PlayerAttributesManager playerAttributesManager = PlayerAttributesManager.get(serverLevel.getServer());
+    double penalty = playerAttributesManager.getPlayerMaxHealth(playerUuid);
+
+    context.getSource().sendSuccess(() -> Component.translatable("difficulty.health.modifier.get", penalty), true);
+    return 1;
+  }
+
+  private static int getOwnHealthPenalty(CommandContext<CommandSourceStack> context) {
+    UUID playerUuid;
+    try {
+      playerUuid = context.getSource().getPlayerOrException().getUUID();
+    } catch (CommandSyntaxException e) {
+      e.printStackTrace();
+      context.getSource().sendFailure(Component.translatable("difficulty.player.only"));
+      return 0;
+    }
+
+    return getHealthPenalty(context, playerUuid);
   }
 }

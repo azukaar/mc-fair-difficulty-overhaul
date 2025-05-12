@@ -14,7 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import java.util.UUID;
 
 public class PlayerDifficultyManager extends SavedData {
-  private static final String DATA_NAME = "player_difficulties";
+  private static final String DATA_NAME = "afdo_player_difficulties";
   private final CompoundTag difficulties;
 
   public PlayerDifficultyManager() {

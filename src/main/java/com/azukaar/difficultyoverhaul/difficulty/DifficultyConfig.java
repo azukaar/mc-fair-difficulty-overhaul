@@ -13,11 +13,14 @@ public class DifficultyConfig {
         public final ModConfigSpec.ConfigValue<Boolean> perPlayerDifficulty;
         public final ModConfigSpec.ConfigValue<String> minPlayerDifficulty;
         public final ModConfigSpec.ConfigValue<String> maxPlayerDifficulty;
+        public final ModConfigSpec.ConfigValue<String> enableDifficultyLockFrom;
         
         // Mechanics introduction
         public final ModConfigSpec.ConfigValue<String> enableHungerNerf;
         public final ModConfigSpec.ConfigValue<String> enableNoSleep;
+        public final ModConfigSpec.ConfigValue<Boolean> softHardcore;
         public final ModConfigSpec.ConfigValue<List<? extends String>> dimensionToNightPurge;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> dimensionToFixSleep;
 
         // list of mobs that only spawn on X difficulty
         public final ModConfigSpec.ConfigValue<List<? extends String>> normalMobs;
@@ -25,6 +28,10 @@ public class DifficultyConfig {
         public final ModConfigSpec.ConfigValue<List<? extends String>> expertMobs;
         public final ModConfigSpec.ConfigValue<List<? extends String>> nightmareMobs;
         public final ModConfigSpec.ConfigValue<List<? extends String>> apocalypticMobs;
+
+        public final ModConfigSpec.ConfigValue<List<? extends Integer>> respawnDistancePerDiff;
+        public final ModConfigSpec.ConfigValue<List<? extends Integer>> healthDeathPenaltyPerDiff;
+        public final ModConfigSpec.ConfigValue<Integer> healthDeathPenaltyMinimum;
 
         Server(ModConfigSpec.Builder builder) {
             builder
@@ -47,6 +54,14 @@ public class DifficultyConfig {
                 .comment("The maximum difficulty a player can set for themselves.")
                 .define("maxPlayer", "apocalyptic", Server::isValidDifficulty);
                 
+            enableDifficultyLockFrom = builder
+                .comment("Enable/Disable the difficulty lock. This will prevent players from downgrading their difficulty. By default the value is expert, meaning that players can only downgrade between peaceful to hard, but higher difficulties can only be upgraded. Leave empty to disable the lock.")
+                .define("enableDifficultyLockFrom", "expert", Server::isValidDifficultyOrEmpty);
+
+            softHardcore = builder
+                .comment("Enable/Disable the soft-hardcore mechanics. This is disabled by default. It will make it so that if you die repeatedly, and the health penaly is applied to the player, once they reach the minimum health, they will be forced to forever spectate.")
+                .define("softHardcore", false);
+
             builder
             .pop()
             .comment("Enable/Disable, or change specific mechanics kick off")
@@ -57,12 +72,28 @@ public class DifficultyConfig {
                 .define("hungerNerf", "expert", Server::isValidDifficulty);
 
             enableNoSleep =  builder
-                .comment("Prevent player of that difficulty from sleeping.")
+                .comment("Prevent player of that difficulty from sleeping. Forces players to have to survive the night and various events from other mods.")
                 .define("noSleep", "expert", Server::isValidDifficulty); 
 
             dimensionToNightPurge = builder
                 .comment("This is a purge that happens at the beginning of the night, to prevent the MC 1.18+ large cave population from hoarding the mob cap and preventing surface mobs.")
                 .defineList("dimensionToNightPurge", new ArrayList<>(List.of("minecraft:overworld")), obj -> obj instanceof String);
+                
+            dimensionToFixSleep = builder
+                .comment("Which dimension should have custom sleep mechanics? This mechanic checks if every players that are allowed to sleep are sleeping (otherwise you would be waiting for players who cannot sleep) and force the sleep when the conditions are met. It is compatible with the gamerule PlayerSleepingPercentage.")
+                .defineList("dimensionToFixSleep", new ArrayList<>(List.of("minecraft:overworld")), obj -> obj instanceof String);
+
+            respawnDistancePerDiff = builder
+                .comment("The respawn distance for each difficulty. The default is 0, which means you will respawn at the spawnpoint. The order is: peaceful to apocalypse. The respawn distance is the maximum distance from the spawnpoint. This setting forces you to build an infrastructure to get back to your base.")
+                .defineList("respawnDistancePerDiff", new ArrayList<>(List.of(0, 0, 0, 0, 0, 100, 500)), obj -> obj instanceof Integer);
+
+            healthDeathPenaltyPerDiff = builder
+                .comment("The health penalty for each difficulty. The default is 0, which means you will respawn with full health. The order is: peaceful to apocalypse. This is a penalty to your max health when you die. This setting makes you more self-conscious about the risk you will take as they have permanent consequences. Think of it as as a soft-hardcore system.")
+                .defineList("healthDeathPenaltyPerDiff", new ArrayList<>(List.of(0, 0, 0, 0, 0, 0, -1)), obj -> obj instanceof Integer);
+
+            healthDeathPenaltyMinimum = builder
+                .comment("How low can your health go? This is the minimum health you can have when you die")
+                .define("healthDeathPenaltyMinimum", 8, obj -> obj instanceof Integer);
 
             builder
             .pop()
@@ -100,6 +131,14 @@ public class DifficultyConfig {
             return false;
         }
 
+        private static boolean isValidDifficultyOrEmpty(Object obj) {
+            if (obj instanceof String) {
+                String difficulty = (String) obj;
+                return DifficultyCommand.DIFFICULTY_STRINGS.contains(difficulty.toLowerCase()) || difficulty.isEmpty();
+            }
+            return false;
+        }
+
         public String getMobDifficulty(String entityName) {
             if (normalMobs.get().contains(entityName)) {
                 return "normal";
@@ -121,11 +160,48 @@ public class DifficultyConfig {
                     return DifficultyCommand.DIFFICULTY_STRINGS.indexOf(enableHungerNerf.get()) <= DifficultyCommand.DIFFICULTY_STRINGS.indexOf(value);
                 case "dimensionToNightPurge":
                     return dimensionToNightPurge.get().contains(value);
+                case "dimensionToFixSleep":
+                    return dimensionToFixSleep.get().contains(value);
                 case "noSleep": 
                     return DifficultyCommand.DIFFICULTY_STRINGS.indexOf(enableNoSleep.get()) <= DifficultyCommand.DIFFICULTY_STRINGS.indexOf(value);
                 default:
                     return false;
             }
+        }
+
+        public int getRespawnDistance(String difficulty) {
+            return respawnDistancePerDiff.get().get(DifficultyCommand.DIFFICULTY_STRINGS.indexOf(difficulty));
+        }
+
+        public int getHealthDeathPenalty(String difficulty) {
+            return healthDeathPenaltyPerDiff.get().get(DifficultyCommand.DIFFICULTY_STRINGS.indexOf(difficulty));
+        }
+
+        public int getHealthDeathPenaltyMinimum() {
+            return healthDeathPenaltyMinimum.get();
+        }
+
+        public Boolean isDifficultyChangeAllowed(String from, String to) {
+            // check if the difficulty lock is enabled
+            if (enableDifficultyLockFrom.get().isEmpty()) {
+                return true;
+            }
+            
+            // check if the from difficulty is lower than the to lock difficulty
+            if (DifficultyCommand.DIFFICULTY_STRINGS.indexOf(from) < DifficultyCommand.DIFFICULTY_STRINGS.indexOf(enableDifficultyLockFrom.get())) {
+                return true;
+            }
+
+            // check if upgrading 
+            if (DifficultyCommand.DIFFICULTY_STRINGS.indexOf(from) < DifficultyCommand.DIFFICULTY_STRINGS.indexOf(to)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        public Boolean isSoftHardcoreEnabled() {
+            return softHardcore.get();
         }
     }
 

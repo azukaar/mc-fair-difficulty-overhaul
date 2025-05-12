@@ -27,6 +27,8 @@
   "difficulty.min.player.set": "La dificultad mínima del jugador se ha establecido en %s",
   "difficulty.max.player.set": "La dificultad máxima del jugador se ha establecido en %s",
   "difficulty.per.player.set": "La dificultad por jugador se ha establecido en %s",
+  "difficulty.lock.set": "El bloqueo de dificultad ha sido establecido a %s",
+  "difficulty.lock.set.null": "El bloqueo de dificultad ha sido desactivado",
   "difficulty.invalid.setting": "Configuración inválida. Usa /difficulty-setup para ver la lista de claves.",
   "difficulty.per.player.disabled": "La dificultad por jugador está desactivada.",
   "difficulty.player.only": "Debes ser un jugador para usar este comando.",
@@ -37,6 +39,11 @@
   "difficulty.personal.set": "Tu dificultad personal se ha establecido en %s",
   "difficulty.current": "La dificultad actual es: %s",
   "difficulty.set": "La dificultad se ha establecido en %s",
-  
-  "messages.azukaarsfairdifficultyoverhaul.nosleep": "Has visto demasiados horrores para dormir."
+  "difficulty.health.modifier.invalid": "Error: El valor de penalización de salud no puede ser negativo.",
+  "difficulty.health.modifier.set": "Modificador de salud establecido a %s.",
+  "difficulty.health.modifier.get": "Modificador de salud actual: %s.",
+  "difficulty.change.not.allowed": "No puedes reducir más tu dificultad.",
+
+  "messages.azukaarsfairdifficultyoverhaul.nosleep": "Has visto demasiados horrores para dormir.",
+  "messages.azukaarsfairdifficultyoverhaul.softhardcore": "Has muerto con la configuración soft-hardcore activada y te has quedado sin vidas. Ahora estás bloqueado en modo Espectador. ¡GG!"
 }

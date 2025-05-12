@@ -1,5 +1,6 @@
-- sleep when all sleepable players are asleep
+- Fix missing sleep mechanic config
 - gunslinger (skeleton)
-- respawn further from spawn depending on difficulty
-- perma lose health on death
-- cannot downgrade from Apocalypse
+- regeneration scaling
+- mimics
+- pirhana
+- https://betterwithmods.gitlab.io/Documentation/en_us/hardcore/
