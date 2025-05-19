@@ -64,6 +64,12 @@ public class BuilderGoal extends Goal {
     }
   }
 
+  BlockPos tempTarget;
+  public void moveToTemp(BlockPos pos) {
+    this.monster.getNavigation().moveTo(pos.getX(), pos.getY(), pos.getZ(), 1.0);
+    this.tempTarget = pos;
+  }
+
   @Override
   public void tick() {
     if(this.monster.getTarget() == null) {
@@ -81,7 +87,8 @@ public class BuilderGoal extends Goal {
     
     if (distanceToInv > 2 * 2) {
 
-      if(this.timer >= 20) {
+      if(this.timer >= 20 || (tempTarget != null && this.monster.blockPosition().distSqr(this.tempTarget) < 2)) {
+          tempTarget = null;
           Vec3 point1 = new Vec3(this.monster.blockPosition().getX(), this.monster.blockPosition().getY(),
               this.monster.blockPosition().getZ());
 
@@ -108,6 +115,7 @@ public class BuilderGoal extends Goal {
             Block toUse = exhaustBlock();
             if(toUse != null) {
               this.level.setBlock(nextPos, toUse.defaultBlockState(), 3);
+              moveToTemp(nextPos);
             }
           } else {
             Boolean isDone = false;
@@ -130,10 +138,12 @@ public class BuilderGoal extends Goal {
                   Block toUse = exhaustBlock();
                   if(toUse != null) {
                     this.level.setBlock(pos, toUse.defaultBlockState(), 3);
+                    moveToTemp(pos);
                   }
                   toUse = exhaustBlock();
                   if(toUse != null) {
                     this.level.setBlock(pos2, toUse.defaultBlockState(), 3);
+                    moveToTemp(pos2);
                   }
                   isDone = true;
                 }
@@ -145,6 +155,7 @@ public class BuilderGoal extends Goal {
             Block toUse = exhaustBlock();
             if(toUse != null) {
               this.level.setBlock(nextPosBelow, toUse.defaultBlockState(), 3);
+              moveToTemp(nextPosBelow);
             }
           }
         }

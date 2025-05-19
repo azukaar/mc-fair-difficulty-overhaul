@@ -2,6 +2,7 @@ package com.azukaar.difficultyoverhaul.entity.mobs;
 
 import com.azukaar.difficultyoverhaul.ModEntityRegistry;
 import com.azukaar.difficultyoverhaul.entity.ai.BuilderGoal;
+import com.azukaar.difficultyoverhaul.entity.ai.ComGoal;
 import com.azukaar.difficultyoverhaul.entity.ai.InventoryBreakerGoal;
 import com.azukaar.difficultyoverhaul.entity.ai.MinerGoal;
 import com.azukaar.difficultyoverhaul.entity.ai.SmellerGoal;
@@ -16,6 +17,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.PickaxeItem;
 import net.minecraft.world.item.ShovelItem;
+import net.minecraft.world.item.SpyglassItem;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingConversionEvent;
@@ -53,6 +55,7 @@ public class RaisedZombie extends Zombie {
       Item item =  this.getMainHandItem().getItem();
       boolean isBlock = item instanceof BlockItem;
       boolean isTool = item instanceof PickaxeItem || item instanceof ShovelItem || item instanceof AxeItem;
+      boolean isSpyglass = item instanceof SpyglassItem;
         
       if(currentRole == null) {
         if(isBlock) {
@@ -62,6 +65,10 @@ public class RaisedZombie extends Zombie {
         } else if (isTool) {
           currentRole = new MinerGoal(this);
           this.goalSelector.addGoal(2, currentRole);
+          hasRole = true;
+        } else if(isSpyglass) {
+          this.goalSelector.addGoal(2, new SmellerGoal(this, 64.0F));
+          this.goalSelector.addGoal(2, new ComGoal(this));
           hasRole = true;
         }
       } else if(!isBlock && !isTool) {

@@ -14,7 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import java.util.UUID;
 
 public class PlayerDifficultyManager extends SavedData {
-  private static final String DATA_NAME = "player_difficulties";
+  private static final String DATA_NAME = "afdo_player_difficulties";
   private final CompoundTag difficulties;
 
   public PlayerDifficultyManager() {
@@ -31,22 +31,25 @@ public class PlayerDifficultyManager extends SavedData {
       return nbt;
   }
    
-  public void setPlayerDifficulty(UUID playerUUID, String difficulty) {
-    setPlayerDifficulty(playerUUID.toString(), difficulty);
+   
+  public void setPlayerDifficulty(MinecraftServer server, UUID playerUUID, String difficulty) {
+    setPlayerDifficulty(server, playerUUID.toString(), difficulty);
   }
    
-  public void setPlayerDifficulty(String playerUUID, String difficulty) {
+  public void setPlayerDifficulty(MinecraftServer server, String playerUUID, String difficulty) {
     if (DifficultyCommand.DIFFICULTY_STRINGS.contains(difficulty.toLowerCase())) {
         difficulties.putString(playerUUID, difficulty.toLowerCase());
         setDirty();
+
+        this.onDiffChange(server.getPlayerList().getPlayer(UUID.fromString(playerUUID)));
     }
   }
 
-  public String getPlayerDifficulty(UUID playerUUID) {
+  public String getPlayerDifficulty(MinecraftServer server, UUID playerUUID) {
     if (difficulties.contains(playerUUID.toString())) {
         return difficulties.getString(playerUUID.toString());
     }
-    return DifficultyConfig.SERVER.serverDifficulty.get();
+    return WorldDifficultyManager.get(server).getWorldDifficulty();
   }
 
   public static PlayerDifficultyManager get(MinecraftServer server) {
@@ -73,10 +76,10 @@ public class PlayerDifficultyManager extends SavedData {
 
       try {  
         if(DifficultyCommand.DIFFICULTY_STRINGS.indexOf(difficulty) < DifficultyCommand.DIFFICULTY_STRINGS.indexOf(minDiff)) {
-          manager.setPlayerDifficulty(difficultyKey, minDiff);
+          manager.setPlayerDifficulty(server, difficultyKey, minDiff);
           manager.setDirty();
         } else if(DifficultyCommand.DIFFICULTY_STRINGS.indexOf(difficulty) > DifficultyCommand.DIFFICULTY_STRINGS.indexOf(maxDiff)) {
-          manager.setPlayerDifficulty(difficultyKey, maxDiff);
+          manager.setPlayerDifficulty(server, difficultyKey, maxDiff);
           manager.setDirty();
         }
       } catch (IllegalArgumentException e) {
@@ -88,7 +91,7 @@ public class PlayerDifficultyManager extends SavedData {
   public static void setDifficulty(MinecraftServer server, UUID playerUUID, String difficulty) {
     if (DifficultyConfig.SERVER.perPlayerDifficulty.get()) {
       PlayerDifficultyManager manager = get(server);
-      manager.setPlayerDifficulty(playerUUID, difficulty);
+      manager.setPlayerDifficulty(server, playerUUID, difficulty);
       manager.setDirty();
     }
   }
@@ -96,9 +99,9 @@ public class PlayerDifficultyManager extends SavedData {
   public static String getDifficulty(MinecraftServer server, UUID playerUUID) {
     if (DifficultyConfig.SERVER.perPlayerDifficulty.get()) {
       PlayerDifficultyManager manager = get(server);
-      return manager.getPlayerDifficulty(playerUUID);
+      return manager.getPlayerDifficulty(server, playerUUID);
     } else {
-      return DifficultyConfig.SERVER.serverDifficulty.get(); 
+      return WorldDifficultyManager.get(server).getWorldDifficulty(); 
     }
   }
 
@@ -133,11 +136,11 @@ public class PlayerDifficultyManager extends SavedData {
       if (maxDiff != -1) {
         return DifficultyCommand.DIFFICULTY_STRINGS.get(maxDiff);
       } else {
-        return DifficultyConfig.SERVER.serverDifficulty.get(); 
+        return WorldDifficultyManager.get(level.getServer()).getWorldDifficulty(); 
       }
     }
 
-    return DifficultyConfig.SERVER.serverDifficulty.get(); 
+    return WorldDifficultyManager.get(level.getServer()).getWorldDifficulty(); 
   }
 
 
@@ -163,5 +166,11 @@ public class PlayerDifficultyManager extends SavedData {
 
   public static boolean isDifficultyAtLocationOver(ServerLevel level, Entity entity, String difficulty) {
     return isDifficultyAtLocationOver(level, entity.blockPosition(), difficulty);
+  }
+
+  public void onDiffChange(ServerPlayer player) {
+      ServerLevel serverLevel = (ServerLevel) player.level();
+      PlayerAttributesManager playerPenaltyManager = PlayerAttributesManager.get(serverLevel.getServer());
+      playerPenaltyManager.applyLuck((ServerPlayer) player);
   }
 }

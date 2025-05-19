@@ -4,11 +4,11 @@
 			"item": "minecraft:iron_sword"
 		},
 		"title": {
-			"translate": "advancements.fair_difficulty_overhaul.root.title"
+			"translate": "advancements.azukaarsfairdifficultyoverhaul.root.title"
 		},
 		"description": {
 			"color": "#CCCCCC",
-			"translate": "advancements.fair_difficulty_overhaul.root.description"
+			"translate": "advancements.azukaarsfairdifficultyoverhaul.root.description"
 		},
 		"background": "minecraft:textures/block/deepslate.png",
 		"show_toast": false,

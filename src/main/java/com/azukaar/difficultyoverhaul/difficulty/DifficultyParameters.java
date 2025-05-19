@@ -22,19 +22,17 @@ public class DifficultyParameters {
       case "hard":
         return 1.0f;
       case "expert":
-        return 1.25f;
+        return 1.50f;
       case "nightmare":
         return 2.0f;
       case "apocalyptic":
-        return 4.0f;
+        return 3.0f;
       default:
         return 1.0f;
     }
   }
 
   static public float getDamageMultiplier(String difficulty) {
-    // String serverDiff = DifficultyConfig.SERVER.serverDifficulty.get();
-    // Float normalizer = normalizeDiff(serverDiff, "hard");
     return getRawDamageMultiplier(difficulty); // * normalizer;
   }
   

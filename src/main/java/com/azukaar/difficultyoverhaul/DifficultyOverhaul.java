@@ -8,21 +8,18 @@ import com.azukaar.difficultyoverhaul.event.ModEvents;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
@@ -40,16 +37,18 @@ import net.minecraftforge.registries.RegistryObject;
 public class DifficultyOverhaul
 {
     // Define mod id in a common place for everything to reference
-    public static final String MODID = "fair_difficulty_overhaul";
+    public static final String MODID = "azukaarsfairdifficultyoverhaul";
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
-    // Create a Deferred Register to hold Blocks which will all be registered under the "fair_difficulty_overhaul" namespace
+    // Create a Deferred Register to hold Blocks which will all be registered under the "azukaarsfairdifficultyoverhaul" namespace
 
+    public static Difficulty CURRENT_SERVER_DIFFICULTY = Difficulty.NORMAL;
+    
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
     // Create a Deferred Register to hold Items which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);    public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MODID);
 
-    // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "fair_difficulty_overhaul" namespace
+    // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "azukaarsfairdifficultyoverhaul" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
     public static final RegistryObject<Item> CREATIVE_TAB_ICON = ITEMS.register("creative_tab_icon", CreativeTabIcon::new);
@@ -66,13 +65,11 @@ public class DifficultyOverhaul
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public DifficultyOverhaul()
     {
-        LOGGER.info("[AZU] 1 ");
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
-        LOGGER.info("[AZU] 2");
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
         // Register the Deferred Register to the mod event bus so items get registered
@@ -80,17 +77,15 @@ public class DifficultyOverhaul
         // Register the Deferred Register to the mod event bus so tabs get registered
         CREATIVE_MODE_TABS.register(modEventBus);
         
-        LOGGER.info("[AZU] 3");
 		ModEntityRegistry.ENTITIES.register(modEventBus);
         ModEntityRegistry.SPAWN_EGGS.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in.
-        // Note that this is necessary if and only if we want *this* class (fair_difficulty_overhaul) to respond directly to events.
+        // Note that this is necessary if and only if we want *this* class (azukaarsfairdifficultyoverhaul) to respond directly to events.
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(ModEvents.class);
 
-        LOGGER.info("[AZU] 4");
         // ModBiomeModifier.registerBiomeModifiers(modEventBus);
 
         // Register the item to a creative tab
@@ -100,7 +95,6 @@ public class DifficultyOverhaul
             modEventBus.register(ModClientSetup.class);
         }
 
-        LOGGER.info("[AZU] 5");
         // Register the config
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, DifficultyConfig.serverSpec);
     }
@@ -134,6 +128,10 @@ public class DifficultyOverhaul
         if (DifficultyConfig.SERVER.perPlayerDifficulty.get()) {
             event.getServer().setDifficulty(Difficulty.HARD, true);
         }
+
+        // Read the current difficulty of the server
+        CURRENT_SERVER_DIFFICULTY = event.getServer().getWorldData().getDifficulty();
+        LOGGER.info("Current server difficulty: " + CURRENT_SERVER_DIFFICULTY);
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
