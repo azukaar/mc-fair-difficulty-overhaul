@@ -116,7 +116,6 @@ public class DifficultyCommand {
 
   private static int getSetup(CommandContext<CommandSourceStack> context) {
     final String setup = Component.translatable("difficulty.setup",
-        DifficultyConfig.SERVER.serverDifficulty.get(),
         DifficultyConfig.SERVER.perPlayerDifficulty.get(),
         DifficultyConfig.SERVER.minPlayerDifficulty.get(),
         DifficultyConfig.SERVER.maxPlayerDifficulty.get(),
@@ -138,7 +137,6 @@ public class DifficultyCommand {
 
   private static CompletableFuture<Suggestions> suggestConfigName(CommandContext<CommandSourceStack> context,
       SuggestionsBuilder builder) {
-    builder.suggest("serverDifficulty");
     builder.suggest("perPlayerDifficulty");
     builder.suggest("minPlayerDifficulty");
     builder.suggest("maxPlayerDifficulty");
@@ -167,12 +165,6 @@ public class DifficultyCommand {
       Component translatedDifficulty = getTranslatedDifficulty(value);
 
       switch (key) {
-        case "serverDifficulty":
-          DifficultyConfig.SERVER.serverDifficulty.set(value);
-          DifficultyConfig.SERVER.serverDifficulty.save();
-          context.getSource().sendSuccess(() -> Component.translatable("difficulty.server.set", translatedDifficulty),
-              true);
-          break;
         case "minPlayerDifficulty":
           DifficultyConfig.SERVER.minPlayerDifficulty.set(value);
           DifficultyConfig.SERVER.minPlayerDifficulty.save();
@@ -283,7 +275,7 @@ public class DifficultyCommand {
   }
 
   private static int getDifficulty(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-    String currentDifficulty = DifficultyConfig.SERVER.serverDifficulty.get();
+    String currentDifficulty = WorldDifficultyManager.get(context.getSource().getServer()).getWorldDifficulty();
     Component translatedDifficulty = getTranslatedDifficulty(currentDifficulty);
     context.getSource().sendSuccess(() -> Component.translatable("difficulty.current", translatedDifficulty), false);
     return 1;
@@ -300,7 +292,8 @@ public class DifficultyCommand {
       return 1;
     }
 
-    String currentDifficulty = DifficultyConfig.SERVER.serverDifficulty.get();
+    WorldDifficultyManager worldDifficultyManager = WorldDifficultyManager.get(context.getSource().getServer());
+    String currentDifficulty = worldDifficultyManager.getWorldDifficulty();
     if(!DifficultyConfig.SERVER.isDifficultyChangeAllowed(currentDifficulty, factor)) {
       context.getSource().sendFailure(Component.translatable("difficulty.change.not.allowed", currentDifficulty, factor));
       return 0;
@@ -312,11 +305,16 @@ public class DifficultyCommand {
       context.getSource().getServer().setDifficulty(Difficulty.HARD, true);
     }
 
-    DifficultyConfig.SERVER.serverDifficulty.set(factor);
-    DifficultyConfig.SERVER.serverDifficulty.save();
+    worldDifficultyManager.setWorldDifficulty(context.getSource().getServer(), factor);
 
     Component translatedDifficulty = getTranslatedDifficulty(factor);
     context.getSource().sendSuccess(() -> Component.translatable("difficulty.set", translatedDifficulty), true);
+
+    for(ServerPlayer player : context.getSource().getServer().getPlayerList().getPlayers()) {
+      PlayerAttributesManager playerAttributesManager = PlayerAttributesManager.get(context.getSource().getServer());
+      playerAttributesManager.applyLuck(player);
+    }
+
     return 1;
   }
 

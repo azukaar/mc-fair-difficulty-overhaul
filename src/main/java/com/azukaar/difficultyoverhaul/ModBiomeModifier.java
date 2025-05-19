@@ -12,10 +12,7 @@ import net.neoforged.neoforge.common.world.ModifiableBiomeInfo;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
-
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class ModBiomeModifier {
     public static final DeferredRegister<MapCodec<? extends BiomeModifier>> BIOME_MODIFIER_SERIALIZERS =
@@ -24,12 +21,10 @@ public class ModBiomeModifier {
     public static final DeferredRegister<BiomeModifier> BIOME_MODIFIERS =
         DeferredRegister.create(NeoForgeRegistries.Keys.BIOME_MODIFIERS, DifficultyOverhaul.MODID);
 
-    private static final Set<Holder<Biome>> zombieBiomes = new HashSet<>();
-
     public static final DeferredHolder<MapCodec<? extends BiomeModifier>, MapCodec<CopySpawningBiomes>> COLLECT_ZOMBIE_BIOMES_CODEC =
         BIOME_MODIFIER_SERIALIZERS.register("copy_spawning_biomes", () -> MapCodec.unit(CopySpawningBiomes::new));
 
-    static void registerBiomeModifiers(IEventBus eventBus) {        
+    static void registerBiomeModifiers(IEventBus eventBus) {
         BIOME_MODIFIER_SERIALIZERS.register(eventBus);
         BIOME_MODIFIERS.register(eventBus);
 

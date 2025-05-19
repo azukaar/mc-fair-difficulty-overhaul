@@ -1,6 +1,7 @@
-- Fix missing sleep mechanic config
+- SAVE DIFF IN SERVER NOT IN CONFIG
 - gunslinger (skeleton)
 - regeneration scaling
 - mimics
 - pirhana
 - https://betterwithmods.gitlab.io/Documentation/en_us/hardcore/
+- https://www.curseforge.com/minecraft/mc-mods/improved-mobs

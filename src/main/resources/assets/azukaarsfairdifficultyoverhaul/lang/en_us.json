@@ -21,7 +21,7 @@
   "advancements.azukaarsfairdifficultyoverhaul.ancient_creepers.title": "Ancient Creepers",
   "advancements.azukaarsfairdifficultyoverhaul.ancient_creepers.description": "Those creeper have lived a long life. Holding in their explosion for so long had the pain disfigure their face and crack their skins.",
   
-  "difficulty.setup": "Difficulty setup: \n - serverDifficulty: %s\n - perPlayerDifficulty: %s\n - minPlayerDifficulty: %s\n - maxPlayerDifficulty: %s\n - enableDifficultyLockFrom: %s",
+  "difficulty.setup": "Difficulty setup: \n - perPlayerDifficulty: %s\n - minPlayerDifficulty: %s\n - maxPlayerDifficulty: %s\n - enableDifficultyLockFrom: %s",
   "difficulty.invalid.option": "Invalid difficulty option. Use /difficulty help for a list of options.",
   "difficulty.server.set": "The server difficulty has been set to %s",
   "difficulty.min.player.set": "The minimum player difficulty has been set to %s",

@@ -7,12 +7,10 @@ import com.azukaar.difficultyoverhaul.difficulty.PlayerAttributesManager;
 import com.azukaar.difficultyoverhaul.difficulty.PlayerDifficultyManager;
 import com.azukaar.difficultyoverhaul.entity.mobs.AncientCreeper;
 import com.azukaar.difficultyoverhaul.entity.mobs.RaisedZombie;
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
-
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -45,13 +43,13 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.CommandEvent;
 import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.SleepFinishedTimeEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.bus.api.SubscribeEvent;
-
 import java.util.Random;
 
 public class ModEvents {
@@ -89,6 +87,10 @@ public class ModEvents {
                 }
             }
         }
+        
+        ServerLevel serverLevel = (ServerLevel) player.level();
+        PlayerAttributesManager playerPenaltyManager = PlayerAttributesManager.get(serverLevel.getServer());
+        playerPenaltyManager.applyLuck((ServerPlayer) player);
     }
 
     @SubscribeEvent
@@ -416,6 +418,7 @@ public class ModEvents {
     public static void onLivingDamage(LivingIncomingDamageEvent event) {
         Level level = event.getEntity().level();
 
+        // Damage scaling TO player
         if (level instanceof ServerLevel serverLevel) {
             if (event.getEntity() instanceof Player) {
                 Player player = (Player) event.getEntity();
@@ -443,17 +446,36 @@ public class ModEvents {
                 }
             }
 
-            // else if (event.getSource().getEntity() instanceof Player) {
-            // Player player = (Player) event.getSource().getEntity();
-            // float difficultyFactor =
-            // DifficultyParameters.getDamageMultiplier(PlayerDifficultyManager.getDifficulty(serverLevel,
-            // player.getUUID()));
+            // Damage scaling FROM player
+            if (event.getSource().getEntity() instanceof Player) {
+                Player player = (Player) event.getSource().getEntity();
+                String difficulty = PlayerDifficultyManager.getDifficulty(serverLevel.getServer(), player.getUUID());
+                double difficultyFactor = DifficultyConfig.SERVER.getDamageMult(difficulty);
 
-            // // Decrease damage for higher difficulties
-            // float newDamage = event.getAmount() / difficultyFactor;
+                // Decrease damage for higher difficulties
+                double newDamage = event.getAmount() * difficultyFactor;
 
-            // event.setNewDamage(newDamage);
-            // }
+                event.setAmount((float)newDamage);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingExperienceDrop(LivingExperienceDropEvent event) {
+        // Check if the entity was killed by a player
+        if (event.getAttackingPlayer() != null) {
+            Player player = event.getAttackingPlayer();
+            String difficulty = PlayerDifficultyManager.getDifficulty(player.getServer(), player.getUUID());
+            double xpDropMult = DifficultyConfig.SERVER.getXpDropMult(difficulty);
+
+            Level level = player.level();
+            
+            if (level instanceof ServerLevel) {
+                // Double the XP amount
+                int originalXp = event.getDroppedExperience();
+                int bonusXp = (int)((double)originalXp * xpDropMult);
+                event.setDroppedExperience(bonusXp);
+            }
         }
     }
 

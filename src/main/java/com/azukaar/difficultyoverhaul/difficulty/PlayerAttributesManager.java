@@ -2,6 +2,8 @@ package com.azukaar.difficultyoverhaul.difficulty;
 
 import java.util.UUID;
 
+import org.checkerframework.checker.units.qual.s;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -20,23 +22,30 @@ import net.minecraft.world.level.saveddata.SavedData;
 public class PlayerAttributesManager extends SavedData {
   private static final String DATA_NAME = "afdo_player_attributes";
   private final CompoundTag maxHealth;
+  private final CompoundTag luck; // New CompoundTag for luck
   public static final ResourceLocation maxHealthAttr = ResourceLocation
       .fromNamespaceAndPath("azukaarsfairdifficultyoverhaul", "max_health_modifier");
+  public static final ResourceLocation luckAttr = ResourceLocation 
+      .fromNamespaceAndPath("azukaarsfairdifficultyoverhaul", "luck_modifier");
 
   public PlayerAttributesManager() {
     this.maxHealth = new CompoundTag();
+    this.luck = new CompoundTag(); // Initialize luck CompoundTag
   }
 
   public PlayerAttributesManager(CompoundTag nbt) {
     this.maxHealth = nbt.getCompound("max_health_modifier");
+    this.luck = nbt.contains("luck_modifier") ? nbt.getCompound("luck_modifier") : new CompoundTag(); 
   }
 
   @Override
   public CompoundTag save(CompoundTag nbt, HolderLookup.Provider provider) {
     nbt.put("max_health_modifier", maxHealth);
+    nbt.put("luck_modifier", luck); // Save luck data
     return nbt;
   }
 
+  // Existing max health methods
   public void setPlayerRawMaxHealth(String playerUUID, double penalty) {
     maxHealth.putDouble(playerUUID, penalty);
     setDirty();
@@ -97,6 +106,47 @@ public class PlayerAttributesManager extends SavedData {
     return 0.0;
   }
 
+  // New luck methods
+  public void setPlayerRawLuck(String playerUUID, double luckBonus) {
+    luck.putDouble(playerUUID, luckBonus);
+    setDirty();
+  }
+
+  public void setPlayerRawLuck(UUID playerUUID, double luckBonus) {
+    setPlayerRawLuck(playerUUID.toString(), luckBonus);
+  }
+
+  public void setPlayerLuck(Player player, double newLuckBonus) {
+    AttributeInstance instance = player.getAttribute(Attributes.LUCK);
+    if (instance != null) {
+      // if the player has a luck modifier, remove it
+      AttributeModifier existingModifier = instance.getModifier(luckAttr);
+      if (existingModifier != null) {
+        instance.removeModifier(existingModifier);
+      }
+
+      instance.addPermanentModifier(new AttributeModifier(
+          luckAttr,
+          newLuckBonus,
+          AttributeModifier.Operation.ADD_VALUE));
+    }
+
+    setPlayerRawLuck(player.getUUID(), newLuckBonus);
+  }
+
+  public void addPlayerLuck(Player player, double difference) {
+    double current = getPlayerLuck(player.getUUID());
+    double newLuckBonus = current + difference;
+    setPlayerLuck(player, newLuckBonus);
+  }
+
+  public double getPlayerLuck(UUID playerUUID) {
+    if (luck.contains(playerUUID.toString())) {
+      return luck.getDouble(playerUUID.toString());
+    }
+    return 0.0;
+  }
+
   public static PlayerAttributesManager get(MinecraftServer server) {
     ServerLevel level = server.overworld();
 
@@ -107,5 +157,13 @@ public class PlayerAttributesManager extends SavedData {
             null // or some appropriate DataFixTypes if needed
         ),
         DATA_NAME);
+  }
+
+  // set luck for a player
+  public void applyLuck(ServerPlayer player) {
+    String playerDifficulty = PlayerDifficultyManager.getDifficulty(player.level().getServer(), player.getUUID());
+    float luck = DifficultyConfig.SERVER.getLuck(playerDifficulty);
+    this.setPlayerLuck(player, luck);
+    System.out.println("Luck set to " + luck + " for player " + player.getName().getString());
   }
 }

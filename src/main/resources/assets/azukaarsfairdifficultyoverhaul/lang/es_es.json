@@ -21,7 +21,7 @@
   "advancements.azukaarsfairdifficultyoverhaul.ancient_creepers.title": "Creepers Antiguos",
   "advancements.azukaarsfairdifficultyoverhaul.ancient_creepers.description": "Estos creepers han vivido una larga vida. Contener su explosión durante tanto tiempo ha desfigurado sus rostros y agrietado sus pieles.",
  
-  "difficulty.setup": "Configuración de dificultad: \n - Dificultad del servidor: %s\n - Dificultad por jugador: %s\n - Dificultad mínima del jugador: %s\n - Dificultad máxima del jugador: %s",
+  "difficulty.setup": "Configuración de dificultad: \n - Dificultad por jugador: %s\n - Dificultad mínima del jugador: %s\n - Dificultad máxima del jugador: %s",
   "difficulty.invalid.option": "Opción de dificultad inválida. Usa /difficulty help para ver una lista de opciones.",
   "difficulty.server.set": "La dificultad del servidor se ha establecido en %s",
   "difficulty.min.player.set": "La dificultad mínima del jugador se ha establecido en %s",

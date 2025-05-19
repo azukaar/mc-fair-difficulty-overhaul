@@ -21,7 +21,7 @@
   "advancements.azukaarsfairdifficultyoverhaul.ancient_creepers.title": "Uralte Creeper",
   "advancements.azukaarsfairdifficultyoverhaul.ancient_creepers.description": "Diese Creeper haben ein langes Leben hinter sich. Das lange Zurückhalten ihrer Explosion hat ihre Gesichter entstellt und ihre Haut rissig werden lassen.",
  
-  "difficulty.setup": "Schwierigkeitseinstellung: \n - Serverschwierigkeit: %s\n - Spielerindividuelle Schwierigkeit: %s\n - Minimale Spielerschwierigkeit: %s\n - Maximale Spielerschwierigkeit: %s",
+  "difficulty.setup": "Schwierigkeitseinstellung: \n - Spielerindividuelle Schwierigkeit: %s\n - Minimale Spielerschwierigkeit: %s\n - Maximale Spielerschwierigkeit: %s",
   "difficulty.invalid.option": "Ungültige Schwierigkeitsoption. Benutze /difficulty help für eine Liste der Optionen.",
   "difficulty.server.set": "Die Serverschwierigkeit wurde auf %s gesetzt",
   "difficulty.min.player.set": "Die minimale Spielerschwierigkeit wurde auf %s gesetzt",

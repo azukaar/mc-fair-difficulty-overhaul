@@ -1,12 +1,13 @@
 package com.azukaar.difficultyoverhaul;
 
+import java.util.function.Supplier;
+
 import org.slf4j.Logger;
 
 import com.azukaar.difficultyoverhaul.difficulty.DifficultyCommand;
 import com.azukaar.difficultyoverhaul.difficulty.DifficultyConfig;
 import com.azukaar.difficultyoverhaul.event.ModEvents;
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Difficulty;
@@ -38,6 +39,9 @@ public class DifficultyOverhaul
     public static final String MODID = "azukaarsfairdifficultyoverhaul";
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
+
+    public static Difficulty CURRENT_SERVER_DIFFICULTY = Difficulty.NORMAL;
+    
     // Create a Deferred Register to hold Blocks which will all be registered under the "azukaarsfairdifficultyoverhaul" namespace
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
     // Create a Deferred Register to hold Items which will all be registered under the "azukaarsfairdifficultyoverhaul" namespace
@@ -57,7 +61,8 @@ public class DifficultyOverhaul
             // set icon as icon.png
             .displayItems((parameters, output) -> {
             }).build());
-            
+
+
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public DifficultyOverhaul(IEventBus modEventBus, ModContainer modContainer)
@@ -119,6 +124,9 @@ public class DifficultyOverhaul
         if (DifficultyConfig.SERVER.perPlayerDifficulty.get()) {
             event.getServer().setDifficulty(Difficulty.HARD, true);
         }
+        
+        // Read the current difficulty of the server
+        CURRENT_SERVER_DIFFICULTY = event.getServer().getWorldData().getDifficulty();
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent

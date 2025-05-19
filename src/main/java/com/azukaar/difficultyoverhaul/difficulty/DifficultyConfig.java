@@ -9,7 +9,6 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class DifficultyConfig {
     public static class Server {
-        public final ModConfigSpec.ConfigValue<String> serverDifficulty;
         public final ModConfigSpec.ConfigValue<Boolean> perPlayerDifficulty;
         public final ModConfigSpec.ConfigValue<String> minPlayerDifficulty;
         public final ModConfigSpec.ConfigValue<String> maxPlayerDifficulty;
@@ -21,6 +20,11 @@ public class DifficultyConfig {
         public final ModConfigSpec.ConfigValue<Boolean> softHardcore;
         public final ModConfigSpec.ConfigValue<List<? extends String>> dimensionToNightPurge;
         public final ModConfigSpec.ConfigValue<List<? extends String>> dimensionToFixSleep;
+
+        // bonuses
+        public final ModConfigSpec.ConfigValue<List<? extends Integer>> luckPerDiff;
+        public final ModConfigSpec.ConfigValue<List<? extends Double>> damagePerDiff;
+        public final ModConfigSpec.ConfigValue<List<? extends Double>> xpDropPerDiff;
 
         // list of mobs that only spawn on X difficulty
         public final ModConfigSpec.ConfigValue<List<? extends String>> normalMobs;
@@ -37,10 +41,6 @@ public class DifficultyConfig {
             builder
             .comment("Manage the difficulty settings of the server")
             .push("difficulty");
-
-            serverDifficulty = builder
-                .comment("The default difficulty factor for players (" + DifficultyCommand.DIFFICULTY_STRINGS + "). If per-player difficulty is enabled, they will default to this difficulty as well. The server itself (ex. spawned mobs) will use this difficulty when no players are around.")
-                .define("server", "normal", Server::isValidDifficulty);
 
             perPlayerDifficulty = builder
                 .comment("Enable per-player difficulty settings. Players will be able to set their own personnal difficulty with /my-difficulty. This will force the vanilla difficulty to hard (which should not impact the actual difficulty of the game), but the serverDifficulty will be used as default player difficulty.")
@@ -94,6 +94,23 @@ public class DifficultyConfig {
             healthDeathPenaltyMinimum = builder
                 .comment("How low can your health go? This is the minimum health you can have when you die")
                 .define("healthDeathPenaltyMinimum", 8, obj -> obj instanceof Integer);
+
+            builder
+            .pop()
+            .comment("Enable/Disable, or change specific bonuses for difficulties")
+            .push("bonuses");
+
+            luckPerDiff = builder
+                .comment("The luck bonus for each difficulty. The default is 0, which means you will have no luck bonus. The order is: peaceful to apocalypse. This setting makes it more worth it to take risk when using high difficulty (Use the Useful Luck mod !)")
+                .defineList("luckPerDiff", new ArrayList<>(List.of(0, 0, 0, 0, 1, 3, 6)), obj -> obj instanceof Integer);
+
+            damagePerDiff = builder
+                .comment("The damage multiplicator bonus for each difficulty. The default is 1.0, which means you will have no damage bonus. The order is: peaceful to apocalypse. This setting encourages a high risk high reward fighting style, where high difficulty makes you more fragile but also more powerful. This is a good way to make the game more challenging without making it impossible.")
+                .defineList("damagePerDiff", new ArrayList<>(List.of(1.0, 1.0, 1.0, 1.0, 1.25, 1.5, 2.0)), obj -> obj instanceof Double);
+
+            xpDropPerDiff = builder
+                .comment("The xp drop multiplicator bonus for each difficulty. The default is 1.0, which means you will have no xp drop bonus. The order is: peaceful to apocalypse.")
+                .defineList("xpDropPerDiff", new ArrayList<>(List.of(1.0, 1.0, 1.0, 1.0, 1.25, 2.0, 3.0)), obj -> obj instanceof Double);
 
             builder
             .pop()
@@ -202,6 +219,18 @@ public class DifficultyConfig {
 
         public Boolean isSoftHardcoreEnabled() {
             return softHardcore.get();
+        }
+
+        public int getLuck(String difficulty) {
+            return luckPerDiff.get().get(DifficultyCommand.DIFFICULTY_STRINGS.indexOf(difficulty));
+        }
+
+        public double getDamageMult(String difficulty) {
+            return damagePerDiff.get().get(DifficultyCommand.DIFFICULTY_STRINGS.indexOf(difficulty));
+        }
+
+        public double getXpDropMult(String difficulty) {
+            return xpDropPerDiff.get().get(DifficultyCommand.DIFFICULTY_STRINGS.indexOf(difficulty));
         }
     }
 
