@@ -5,6 +5,7 @@ import com.azukaar.difficultyoverhaul.difficulty.DifficultyParameters;
 import com.azukaar.difficultyoverhaul.difficulty.MobDifficultyManager;
 import com.azukaar.difficultyoverhaul.difficulty.PlayerAttributesManager;
 import com.azukaar.difficultyoverhaul.difficulty.PlayerDifficultyManager;
+import com.azukaar.difficultyoverhaul.entity.ai.InventoryBreakerGoal;
 import com.azukaar.difficultyoverhaul.entity.mobs.AncientCreeper;
 import com.azukaar.difficultyoverhaul.entity.mobs.RaisedZombie;
 import java.util.HashMap;
@@ -95,6 +96,8 @@ public class ModEvents {
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
+        InventoryBreakerGoal.onServerTick();
+
         for (ServerLevel level : event.getServer().getAllLevels()) {
             String dim = level.dimension().location().toString();
 

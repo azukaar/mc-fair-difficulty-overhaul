@@ -36,6 +36,17 @@ public class InventoryBreakerGoal extends Goal {
   private int lastBreakProgress = -1;
   private List<BlockPos> blackList = new java.util.ArrayList<BlockPos>();
 
+  // Caching variables
+  private boolean cachedScanResult = false;
+  private long lastScanTime = 0;
+  private BlockPos lastScanPosition = null;
+  private static final long CACHE_DURATION_TICKS = 400; // 20 seconds at 20 TPS
+  private static final double RESCAN_DISTANCE_THRESHOLD = 16.0; // 16 blocks
+
+  // Multi-frame scanning variables
+  private List<BlockPos> blocksToProcess = new java.util.ArrayList<BlockPos>();
+  private boolean needsRescanAfterProcessing = false;
+
   public InventoryBreakerGoal(Monster monster) {
     this.monster = monster;
     this.level = monster.level();
@@ -48,35 +59,179 @@ public class InventoryBreakerGoal extends Goal {
       return false;
     }
 
-    // if(monster.target != null) {
-    //   return false;
-    // }
-
     // don't break blocks if the monster is in a minecart
     if (this.monster.isPassenger()) {
       return false;
     }
 
     if (nextBlockOfInterest != null) {
-      if (this.monster.getRandom().nextInt(10) != 0) {
-        return true;
+      // Only validate the current target if we need to rescan
+      if (needsRescan()) {
+        boolean hasPath = hasPathToInventory(nextBlockOfInterest);
+        boolean isOfInterest = isBlockOfInterest(nextBlockOfInterest);
+
+        if (!hasPath || !isOfInterest) {
+          nextBlockOfInterest = null;
+          invalidateCache(); // Clear cache when current target becomes invalid
+          return false;
+        }
+        
+        // Update cache info since we just validated
+        lastScanTime = this.level.getGameTime();
+        lastScanPosition = this.monster.blockPosition();
       }
 
-      boolean hasPath = hasPathToInventory(nextBlockOfInterest);
-      boolean isOfInterest = isBlockOfInterest(nextBlockOfInterest);
-
-      if (!hasPath || !isOfInterest) {
-        nextBlockOfInterest = null;
-      }
-
-      return hasPath && isOfInterest;
+      return true; // Target is valid (either recently validated or assumed valid)
     }
 
-    if (this.monster.getRandom().nextInt(30) != 0) {
+    return findNearbyInventoryWithCache();
+  }
+
+  /**
+   * Invalidate the cache when conditions change
+   */
+  private void invalidateCache() {
+    cachedScanResult = false;
+    lastScanTime = 0;
+    lastScanPosition = null;
+    blocksToProcess.clear();
+    needsRescanAfterProcessing = false;
+  }
+
+  /**
+   * Check if we need to rescan based on time and distance conditions
+   */
+  private boolean needsRescan() {
+    long currentTime = this.level.getGameTime();
+    BlockPos currentPosition = this.monster.blockPosition();
+    
+    // Check if 10 seconds have passed
+    if (currentTime - lastScanTime >= CACHE_DURATION_TICKS) {
       return true;
     }
+    
+    // Check if entity moved more than 16 blocks from last scan position
+    if (lastScanPosition != null) {
+      double distanceMoved = Math.sqrt(currentPosition.distSqr(lastScanPosition));
+      if (distanceMoved > RESCAN_DISTANCE_THRESHOLD) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  static int SCANNED_THIS_TICK = 0; // Static counter to limit processing per tick
+  static final int MAX_SCANS_PER_TICK = 2; // Limit to 1 scan per tick to avoid performance issues
 
-    return findNearbyInventory();// && noPlayersNearby();
+  static public void onServerTick() {
+    SCANNED_THIS_TICK = 0; // Reset the counter for the next tick
+  }
+
+  /**
+   * Find nearby inventory with multi-frame processing and caching logic
+   */
+  private boolean findNearbyInventoryWithCache() {
+    // If we're currently processing blocks, process one per tick
+    if (!blocksToProcess.isEmpty()) {
+      if (this.monster.getRandom().nextInt(2) != 0) {
+        if (SCANNED_THIS_TICK >= MAX_SCANS_PER_TICK) {
+          return false; // Skip this tick to allow other processing
+        }
+        SCANNED_THIS_TICK++;
+        return  processNextBlock();
+      }
+      return false; // Skip this tick to allow other processing
+    }
+    
+    // If we finished processing and need to rescan, start a new scan
+    if (needsRescanAfterProcessing) {
+      needsRescanAfterProcessing = false;
+      return startNewScan();
+    }
+    
+    // If we don't need to rescan, return cached result
+    if (!needsRescan() && lastScanTime > 0) {
+      return cachedScanResult;
+    }
+    
+    // Start a new scan
+    return startNewScan();
+  }
+
+  /**
+   * Start a new scan by finding all blocks of interest (fast operation)
+   */
+  private boolean startNewScan() {
+    blocksToProcess.clear();
+    
+    BlockPos pos = this.monster.blockPosition();
+    int x0 = (int) (pos.getX() - CHECK_RADIUS);
+    int y0 = (int) (pos.getY() - CHECK_RADIUS);
+    int z0 = (int) (pos.getZ() - CHECK_RADIUS);
+    int x1 = (int) (pos.getX() + CHECK_RADIUS);
+    int y1 = (int) (pos.getY() + CHECK_RADIUS);
+    int z1 = (int) (pos.getZ() + CHECK_RADIUS);
+
+    // Find all blocks of interest (cheap operation)
+    for (int x = x0; x <= x1; x++) {
+      for (int y = y0; y <= y1; y++) {
+        for (int z = z0; z <= z1; z++) {
+          BlockPos blockPos = new BlockPos(x, y, z);
+          if (isBlockOfInterest(blockPos)) {
+            blocksToProcess.add(blockPos);
+          }
+        }
+      }
+    }
+    
+    // Update scan info
+    lastScanTime = this.level.getGameTime();
+    lastScanPosition = this.monster.blockPosition();
+    
+    // If no blocks found, cache the result and return
+    if (blocksToProcess.isEmpty()) {
+      cachedScanResult = false;
+      return false;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Process one block from the list (expensive operation spread over multiple ticks)
+   */
+  private boolean processNextBlock() {
+    // Check if we need to rescan while processing
+    if (needsRescan()) {
+      needsRescanAfterProcessing = true;
+    }
+    
+    if (blocksToProcess.isEmpty()) {
+      // Finished processing all blocks, cache the result
+      cachedScanResult = false;
+      return false;
+    }
+    
+    BlockPos blockPos = blocksToProcess.remove(0);
+    
+    // Do the expensive checks for this block
+    boolean hasPath = hasPathToInventory(blockPos);
+    boolean canSee = canSeeInventory(blockPos);
+    
+    if (hasPath && canSee) {
+      // Found a valid target!
+      setFakeTarget(blockPos);
+      breakingTime = 0;
+      lastBreakProgress = -1;
+      cachedScanResult = true;
+      blocksToProcess.clear(); // Clear remaining blocks since we found a target
+      needsRescanAfterProcessing = false;
+      return true;
+    }
+    
+    // Continue processing next tick
+    return !blocksToProcess.isEmpty();
   }
 
   private boolean isBlockOfInterest(BlockPos pos) {
@@ -158,8 +313,7 @@ public class InventoryBreakerGoal extends Goal {
     Vec3 zombieEyePosition = new Vec3(this.monster.getX(), this.monster.getEyeY(), this.monster.getZ());
     Vec3 directionToTarget = new Vec3(targetPos.getX() + 0.5 - this.monster.getX(),
         targetPos.getY() + 0.5 - this.monster.getEyeY(), targetPos.getZ() + 0.5 - this.monster.getZ());
-    Vec3 reducedTargetPosition = zombieEyePosition.add(directionToTarget.scale(0.9)); // Scale the vector to 90% of its
-                                                                                      // length
+    Vec3 reducedTargetPosition = zombieEyePosition.add(directionToTarget.scale(0.9)); // Scale the vector to 90% of its length
 
     // if distance is < 2 blocks, we can see it
     if (directionToTarget.length() <= 2) {
@@ -197,38 +351,7 @@ public class InventoryBreakerGoal extends Goal {
     return false;
   }
 
-  private boolean findNearbyInventory() {
-    BlockPos pos = this.monster.blockPosition();
-    int x0 = (int) (pos.getX() - CHECK_RADIUS);
-    int y0 = (int) (pos.getY() - CHECK_RADIUS);
-    int z0 = (int) (pos.getZ() - CHECK_RADIUS);
-    int x1 = (int) (pos.getX() + CHECK_RADIUS);
-    int y1 = (int) (pos.getY() + CHECK_RADIUS);
-    int z1 = (int) (pos.getZ() + CHECK_RADIUS);
 
-    for (int x = x0; x <= x1; x++) {
-      for (int y = y0; y <= y1; y++) {
-        for (int z = z0; z <= z1; z++) {
-          BlockPos blockPos = new BlockPos(x, y, z);
-
-          if (isBlockOfInterest(blockPos)) {
-            boolean hasPath = hasPathToInventory(blockPos);
-            boolean canSee = canSeeInventory(blockPos);
-
-            if (hasPath && canSee) {
-              // nextBlockOfInterest = blockPos;
-              setFakeTarget(blockPos);
-              breakingTime = 0;
-              lastBreakProgress = -1;
-              return true;
-            }
-          }
-        }
-      }
-    }
-
-    return false;
-  }
 
   public boolean canResistExplosion(BlockPos pos, float explosionStrength) {
     BlockState blockState = level.getBlockState(pos);
@@ -340,9 +463,9 @@ public class InventoryBreakerGoal extends Goal {
           Block.getId(this.monster.level().getBlockState(nextBlockOfInterest))); // Particle effects for block breaking
 
       // Reset closestInventory to prevent re-breaking
-
       blackList.add(nextBlockOfInterest);
       setFakeTarget(null);
+      invalidateCache(); // Invalidate cache when a block is broken
     }
   }
 }
