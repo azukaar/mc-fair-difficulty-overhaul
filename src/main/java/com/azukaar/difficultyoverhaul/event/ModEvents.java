@@ -6,6 +6,8 @@ import com.azukaar.difficultyoverhaul.difficulty.DifficultyParameters;
 import com.azukaar.difficultyoverhaul.difficulty.MobDifficultyManager;
 import com.azukaar.difficultyoverhaul.difficulty.PlayerAttributesManager;
 import com.azukaar.difficultyoverhaul.difficulty.PlayerDifficultyManager;
+import com.azukaar.difficultyoverhaul.enigmatic.EnigmaticLegacyIntegration;
+import com.azukaar.difficultyoverhaul.entity.ai.InventoryBreakerGoal;
 import com.azukaar.difficultyoverhaul.entity.mobs.AncientCreeper;
 import com.azukaar.difficultyoverhaul.entity.mobs.RaisedZombie;
 
@@ -35,6 +37,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerSleepInBedEvent;
 import net.minecraftforge.event.level.SleepFinishedTimeEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
@@ -66,6 +69,7 @@ public class ModEvents {
     private static boolean isPurging = false;
     private static int sleepCheckCounter = 0;
     private static final Random RANDOM = new Random();
+    private static final boolean ENIGMATIC_LEGACY_LOADED = ModList.get().isLoaded("enigmaticlegacy");
 
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -101,6 +105,8 @@ public class ModEvents {
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent event) {
+        InventoryBreakerGoal.onServerTick();
+        
         for (ServerLevel level : event.getServer().getAllLevels()) {
             String dim = level.dimension().location().toString();
 
@@ -425,6 +431,15 @@ public class ModEvents {
                 float difficultyFactor = DifficultyParameters.getDamageMultiplier(difficulty);
                 DamageSource source = event.getSource();
 
+                boolean isCursed = ENIGMATIC_LEGACY_LOADED && EnigmaticLegacyIntegration.hasCursedRing(player);
+
+                if(isCursed) {
+                    if(difficultyFactor > 1 && difficultyFactor <= 2) {
+                        difficultyFactor = 1;
+                    } else if (difficultyFactor > 2) {
+                        difficultyFactor /= 2;
+                    }
+                }
 
                 if (source.getEntity() instanceof Monster) {
                     // Change damage for  difficulty

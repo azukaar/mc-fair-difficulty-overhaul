@@ -122,6 +122,14 @@ repositories {
     // flatDir {
     //     dir 'libs'
     // }
+    
+    maven { url "https://cursemaven.com" }
+    
+    // ONLY FOR TESTING
+    maven {  url = "https://maven.theillusivec4.top/" } // curios
+    maven {  url 'https://maven.blamejared.com' } // patchouli & jei
+    maven {  url = "https://repo.spongepowered.org/maven" } // mixin
+    maven {  url = 'https://maven.parchmentmc.org'  }
 }
 
 dependencies {
@@ -146,6 +154,25 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    
+    compileOnly fg.deobf("curse.maven:enigmatic-legacy-336184:5600004")
+
+    
+
+    // ONLY FOR TESTING
+    // runtimeOnly fg.deobf("curse.maven:enigmatic-legacy-336184:5600004")
+
+    // // Patchouli
+    // compileOnly fg.deobf("vazkii.patchouli:Patchouli:1.20.1-84-FORGE:api")
+    // runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:1.20.1-84-FORGE")
+
+    // // Caelus
+    // runtimeOnly fg.deobf("top.theillusivec4.caelus:caelus-forge:3.2.0+1.20.1")
+    // compileOnly fg.deobf("top.theillusivec4.caelus:caelus-forge:3.2.0+1.20.1")
+
+    // // Curios
+    // runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.9.1+1.20.1")
+    // compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.9.1+1.20.1")
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
