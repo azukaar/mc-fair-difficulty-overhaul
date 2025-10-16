@@ -18,6 +18,7 @@ import net.minecraft.world.item.Item;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
@@ -112,13 +113,20 @@ public class DifficultyOverhaul
         }
     }
 
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event)
+    {
+        LOGGER.info("Registering commands");
+        DifficultyCommand.register(event.getDispatcher());
+    }
+
+
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event)
     {
         // Do something when the server starts
         LOGGER.info("Initializing mod");
-        DifficultyCommand.register(event.getServer().getCommands().getDispatcher());
 
         // if per-player diff is on, force server difficulty to be hard
         if (DifficultyConfig.SERVER.perPlayerDifficulty.get()) {

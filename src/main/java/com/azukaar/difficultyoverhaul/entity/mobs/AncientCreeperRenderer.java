@@ -1,6 +1,7 @@
 package com.azukaar.difficultyoverhaul.entity.mobs;
 
 import com.azukaar.difficultyoverhaul.DifficultyOverhaul;
+import com.azukaar.difficultyoverhaul.difficulty.DifficultyConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.model.geom.ModelLayers;
@@ -44,6 +45,11 @@ public class AncientCreeperRenderer extends MobRenderer<Creeper, CreeperModel<Cr
 
     @Override
     public ResourceLocation getTextureLocation(Creeper entity) {
+        // read from config if custom textures are disabled
+        if (DifficultyConfig.SERVER.disableCustomTexture.get()) {
+            return ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/creeper/creeper.png");
+        }
+
         return TEXTURE;
     }
 }

@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -62,6 +63,22 @@ public class ModEvents {
     private static int sleepCheckCounter = 0;
     private static final Random RANDOM = new Random();
 
+    // Environmental damage types that should NOT be scaled by difficulty
+    private static final Set<String> ENVIRONMENTAL_DAMAGE = Set.of(
+        "fall",
+        "drown",
+        "inWall",
+        "anvil",
+        "fallingBlock",
+        "outOfWorld",
+        "lava",
+        "inFire",
+        "onFire",
+        "fireworks",
+        "flyIntoWall",
+        "cramming"
+    );
+
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         Player player = event.getEntity();
@@ -97,9 +114,36 @@ public class ModEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         InventoryBreakerGoal.onServerTick();
-
+        
         for (ServerLevel level : event.getServer().getAllLevels()) {
             String dim = level.dimension().location().toString();
+            
+            // Peaceful regen
+            if (DifficultyConfig.SERVER.getMechanicEnabled("peacefulRegen", dim) &&
+                DifficultyConfig.SERVER.getMechanicEnabled("peacefulNoFood", dim)) {
+
+                if (level.getGameTime() % 10 == 0) {
+                    for (ServerPlayer player : level.getPlayers(player -> true)) {
+                        String playerDifficulty = PlayerDifficultyManager.getDifficulty(level.getServer(),
+                                player.getUUID());
+                        if (playerDifficulty.equals("peaceful")) {
+                            // Heal player if not at full health
+                            if (DifficultyConfig.SERVER.getMechanicEnabled("peacefulRegen", dim) && player.getHealth() < player.getMaxHealth()) {
+                                player.heal(0.5F);
+                            }
+                            
+                            // Set food to full if hunger nerf is also enabled
+                            if (DifficultyConfig.SERVER.getMechanicEnabled("peacefulNoFood", dim)) {
+                                FoodData foodStats = player.getFoodData();
+                                if (foodStats.getFoodLevel() < 20) {
+                                    foodStats.setFoodLevel(20);
+                                    foodStats.setSaturation(5);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             if (!DifficultyConfig.SERVER.getMechanicEnabled("dimensionToNightPurge", dim)) {
                 continue;
@@ -429,6 +473,11 @@ public class ModEvents {
                 float difficultyFactor = DifficultyParameters.getDamageMultiplier(difficulty);
                 DamageSource source = event.getSource();
 
+                if (difficulty.equals("peaceful") && !ENVIRONMENTAL_DAMAGE.contains(source.getMsgId()) && !(source.getEntity() instanceof Player)) {
+                    event.setCanceled(true);
+                    return;
+                }
+                
                 if (source.getEntity() instanceof Monster) {
                     // Change damage for difficulty
                     float newDamage = event.getAmount() * difficultyFactor;
@@ -486,7 +535,7 @@ public class ModEvents {
     public static void onCommand(CommandEvent event) {
         String command = event.getParseResults().getReader().getString().toLowerCase();
 
-        if (command.startsWith("difficulty easy") || command.startsWith("difficulty normal")
+        if (command.startsWith("difficulty peaceful") || command.startsWith("difficulty easy") || command.startsWith("difficulty normal")
                 || command.startsWith("difficulty hard")) {
             event.setCanceled(true);
             // create command /difficulty server instead

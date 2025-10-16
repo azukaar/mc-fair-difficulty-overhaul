@@ -1,6 +1,7 @@
 package com.azukaar.difficultyoverhaul.entity.mobs;
 
 
+import com.azukaar.difficultyoverhaul.difficulty.DifficultyConfig;
 import com.azukaar.difficultyoverhaul.DifficultyOverhaul;
 import com.mojang.blaze3d.vertex.PoseStack;
 
@@ -35,6 +36,10 @@ public class RaisedZombieRenderer extends AbstractZombieRenderer<Zombie, ZombieM
 
     @Override
     public ResourceLocation getTextureLocation(Zombie entity) {
+        // read from config if custom textures are disabled
+        if (DifficultyConfig.SERVER.disableCustomTexture.get()) {
+            return ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/zombie/zombie.png");
+        }
         return TEXTURE;
     }
 
