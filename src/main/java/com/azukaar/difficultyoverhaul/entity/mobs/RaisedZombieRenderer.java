@@ -2,6 +2,7 @@ package com.azukaar.difficultyoverhaul.entity.mobs;
 
 
 import com.azukaar.difficultyoverhaul.DifficultyOverhaul;
+import com.azukaar.difficultyoverhaul.difficulty.DifficultyConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.model.geom.ModelLayerLocation;
@@ -22,8 +23,8 @@ public class RaisedZombieRenderer extends AbstractZombieRenderer<Zombie, ZombieM
     private static final ResourceLocation EMISSIVE_TEXTURE = new ResourceLocation(DifficultyOverhaul.MODID, "textures/entity/raised_zombies_e.png");
 
     public RaisedZombieRenderer(EntityRendererProvider.Context context) {
-      this(context, ModelLayers.ZOMBIE, ModelLayers.ZOMBIE_INNER_ARMOR, ModelLayers.ZOMBIE_OUTER_ARMOR);   
-      this.addLayer(new RaisedZombieEyesLayer<>(this));
+        this(context, ModelLayers.ZOMBIE, ModelLayers.ZOMBIE_INNER_ARMOR, ModelLayers.ZOMBIE_OUTER_ARMOR); 
+        this.addLayer(new RaisedZombieEyesLayer<>(this));
     }
 
     public RaisedZombieRenderer(EntityRendererProvider.Context pContext, ModelLayerLocation pZombieLayer, ModelLayerLocation pInnerArmor, ModelLayerLocation pOuterArmor) {
@@ -32,6 +33,10 @@ public class RaisedZombieRenderer extends AbstractZombieRenderer<Zombie, ZombieM
 
     @Override
     public ResourceLocation getTextureLocation(Zombie entity) {
+        // read from config if custom textures are disabled
+        if (DifficultyConfig.SERVER.disableCustomTexture.get()) {
+            return new ResourceLocation("textures/entity/zombie/zombie.png");
+        }
         return TEXTURE;
     }
 

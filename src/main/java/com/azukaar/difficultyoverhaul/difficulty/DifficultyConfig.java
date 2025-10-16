@@ -20,6 +20,9 @@ public class DifficultyConfig {
         public final ForgeConfigSpec.ConfigValue<Boolean> softHardcore;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionToNightPurge;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionToFixSleep;
+        public final ForgeConfigSpec.ConfigValue<Boolean> peacefulRegen;
+        public final ForgeConfigSpec.ConfigValue<Boolean> peacefulNoFood;
+        public final ForgeConfigSpec.ConfigValue<Boolean> disableCustomTexture;
 
         // bonuses
         public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> luckPerDiff;
@@ -61,6 +64,18 @@ public class DifficultyConfig {
             softHardcore = builder
                 .comment("Enable/Disable the soft-hardcore mechanics. This is disabled by default. It will make it so that if you die repeatedly, and the health penaly is applied to the player, once they reach the minimum health, they will be forced to forever spectate.")
                 .define("softHardcore", false);
+
+            peacefulRegen = builder
+                .comment("Simulate vanilla peaceful health regeneration. This means that players on peaceful will regenerate health over time, even if they are not at full hunger.")
+                .define("peacefulRegen", true);
+
+            peacefulNoFood = builder
+                .comment("Players on peaceful do not need to eat. This means that their hunger will not decrease over time.")
+                .define("peacefulNoFood", true);
+
+            disableCustomTexture = builder
+                .comment("Disable the custom mob textures. This is useful if you use resource packs.")
+                .define("disableCustomTexture", false);
 
             builder
                 .pop()
@@ -181,6 +196,10 @@ public class DifficultyConfig {
                     return dimensionToFixSleep.get().contains(value);
                 case "noSleep": 
                     return DifficultyCommand.DIFFICULTY_STRINGS.indexOf(enableNoSleep.get()) <= DifficultyCommand.DIFFICULTY_STRINGS.indexOf(value);
+                case "peacefulRegen":
+                    return peacefulRegen.get();
+                case "peacefulNoFood":
+                    return peacefulNoFood.get();
                 default:
                     return false;
             }

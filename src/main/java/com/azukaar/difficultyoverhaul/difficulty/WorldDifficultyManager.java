@@ -17,15 +17,17 @@ public class WorldDifficultyManager extends SavedData {
     public WorldDifficultyManager(CompoundTag nbt) {
         this.worldDifficulty = nbt.getString("WorldDifficulty");
         // Fallback to default if empty or invalid
-        if (!DifficultyCommand.DIFFICULTY_STRINGS.contains(this.worldDifficulty)) {
+        if (this.worldDifficulty == null || this.worldDifficulty.isEmpty() ||
+            !DifficultyCommand.DIFFICULTY_STRINGS.contains(this.worldDifficulty)) {
+            this.worldDifficulty = null; // Will use CURRENT_SERVER_DIFFICULTY as fallback
         }
     }
 
     @Override
     public CompoundTag save(CompoundTag nbt) {
-        CompoundTag worldDifficultyTag = new CompoundTag();
-        worldDifficultyTag.putString("WorldDifficulty", worldDifficulty);
-        nbt.put("WorldDifficulty", worldDifficultyTag);
+        if (worldDifficulty != null && !worldDifficulty.isEmpty()) {
+            nbt.putString("WorldDifficulty", worldDifficulty);
+        }
         return nbt;
     }
     

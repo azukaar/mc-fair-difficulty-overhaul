@@ -18,6 +18,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -116,13 +117,19 @@ public class DifficultyOverhaul
         }
     }
 
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event)
+    {
+        LOGGER.info("Registering commands");
+        DifficultyCommand.register(event.getDispatcher());
+    }
+
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event)
     {
         // Do something when the server starts
         LOGGER.info("Initializing mod");
-        DifficultyCommand.register(event.getServer().getCommands().getDispatcher());
 
         // if per-player diff is on, force server difficulty to be hard
         if (DifficultyConfig.SERVER.perPlayerDifficulty.get()) {
