@@ -83,20 +83,20 @@ public class DifficultyConfig {
                 .push("mechanics");
 
             enableHungerNerf = builder
-                .comment("This mechanics makes you respawn with less hunger to prevent suicide-feeding.")
-                .define("hungerNerf", "expert", Server::isValidDifficulty);
+                .comment("This mechanics makes you respawn with less hunger to prevent suicide-feeding. Leave empty to disable.")
+                .define("hungerNerf", "expert", Server::isValidDifficultyOrEmpty);
 
             enableNoSleep =  builder
-                .comment("Prevent player of that difficulty from sleeping. Forces players to have to survive the night and various events from other mods.")
-                .define("noSleep", "expert", Server::isValidDifficulty); 
+                .comment("Prevent player of that difficulty from sleeping. Forces players to have to survive the night and various events from other mods. Leave empty to disable.")
+                .define("noSleep", "expert", Server::isValidDifficultyOrEmpty); 
 
             dimensionToNightPurge = builder
                 .comment("This is a purge that happens at the beginning of the night, to prevent the MC 1.18+ large cave population from hoarding the mob cap and preventing surface mobs.")
                 .defineList("dimensionToNightPurge", new ArrayList<>(List.of("minecraft:overworld")), obj -> obj instanceof String);
 
             dimensionToFixSleep = builder
-                .comment("Which dimension should have custom sleep mechanics? This mechanic checks if every players that are allowed to sleep are sleeping (otherwise you would be waiting for players who cannot sleep) and force the sleep when the conditions are met. It is compatible with the gamerule PlayerSleepingPercentage.")
-                .defineList("dimensionToFixSleep", new ArrayList<>(List.of("minecraft:overworld")), obj -> obj instanceof String);
+                .comment("Which dimension should have custom sleep mechanics? This mechanic checks if every players that are allowed to sleep are sleeping (otherwise you would be waiting for players who cannot sleep) and force the sleep when the conditions are met. It is compatible with the gamerule PlayerSleepingPercentage. Leave empty to apply to all dimensions.")
+                .defineList("dimensionToFixSleep", new ArrayList<>(), obj -> obj instanceof String);
 
             respawnDistancePerDiff = builder
                 .comment("The respawn distance for each difficulty. The default is 0, which means you will respawn at the spawnpoint. The order is: peaceful to apocalypse. The respawn distance is the maximum distance from the spawnpoint. This setting forces you to build an infrastructure to get back to your base.")
@@ -189,12 +189,15 @@ public class DifficultyConfig {
         public Boolean getMechanicEnabled(String mechanic, String value) {
             switch (mechanic) {
                 case "hungerNerf":
+                    if (enableHungerNerf.get().isEmpty()) return false;
                     return DifficultyCommand.DIFFICULTY_STRINGS.indexOf(enableHungerNerf.get()) <= DifficultyCommand.DIFFICULTY_STRINGS.indexOf(value);
                 case "dimensionToNightPurge":
                     return dimensionToNightPurge.get().contains(value);
                 case "dimensionToFixSleep":
-                    return dimensionToFixSleep.get().contains(value);
-                case "noSleep": 
+                    // Empty list means all dimensions
+                    return dimensionToFixSleep.get().isEmpty() || dimensionToFixSleep.get().contains(value);
+                case "noSleep":
+                    if (enableNoSleep.get().isEmpty()) return false;
                     return DifficultyCommand.DIFFICULTY_STRINGS.indexOf(enableNoSleep.get()) <= DifficultyCommand.DIFFICULTY_STRINGS.indexOf(value);
                 case "peacefulRegen":
                     return peacefulRegen.get();
@@ -238,6 +241,10 @@ public class DifficultyConfig {
 
         public Boolean isSoftHardcoreEnabled() {
             return softHardcore.get();
+        }
+
+        public Boolean isNoSleepDisabled() {
+            return enableNoSleep.get().isEmpty();
         }
 
         public int getLuck(String difficulty) {

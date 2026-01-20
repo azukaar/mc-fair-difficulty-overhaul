@@ -167,8 +167,9 @@ public class ModEvents {
                 hasPurgedTonight = false;
             }
 
-            // Sleep check
+            // Sleep check - only run if noSleep is enabled (non-empty) and dimension is in the fix list
             if (!level.dimensionType().hasFixedTime()
+                    && !DifficultyConfig.SERVER.isNoSleepDisabled()
                     && DifficultyConfig.SERVER.getMechanicEnabled("dimensionToFixSleep", dim)) {
                 sleepCheckCounter++;
                 // check every 20 ticks
